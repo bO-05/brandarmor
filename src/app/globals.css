@@ -1,0 +1,67 @@
+﻿@import "tailwindcss";
+
+@theme inline {
+  --color-background: oklch(98.5% 0.004 260);
+  --color-foreground: oklch(18% 0.015 260);
+  --color-card: oklch(100% 0.002 260);
+  --color-card-foreground: oklch(18% 0.015 260);
+  --color-primary: oklch(42% 0.1 260);
+  --color-primary-foreground: oklch(98% 0.004 260);
+  --color-secondary: oklch(94% 0.006 260);
+  --color-secondary-foreground: oklch(35% 0.015 260);
+  --color-muted: oklch(95% 0.005 260);
+  --color-muted-foreground: oklch(48% 0.01 260);
+  --color-destructive: oklch(52% 0.19 25);
+  --color-destructive-foreground: oklch(98% 0.004 260);
+  --color-warning: oklch(68% 0.15 70);
+  --color-success: oklch(52% 0.14 155);
+  --color-border: oklch(90% 0.006 260);
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.surface-card {
+  border: 1px solid var(--color-border);
+  background: color-mix(in oklch, var(--color-card) 94%, var(--color-background));
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-foreground) 8%, transparent);
+}
+
+.hover-lift {
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.hover-lift:hover {
+  border-color: color-mix(in oklch, var(--color-primary) 34%, var(--color-border));
+  box-shadow: 0 10px 24px color-mix(in oklch, var(--color-foreground) 10%, transparent);
+  transform: translateY(-1px);
+}
+
+.status-pill {
+  display: inline-flex;
+  min-height: 1.625rem;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  padding: 0.1875rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.bar-track {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-muted);
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}

@@ -1,0 +1,34 @@
+# ── Line ending normalization ─────────────────────────────────
+# All text files get LF in the repo, native on checkout
+* text=auto eol=lf
+
+# ── Explicit text files ──────────────────────────────────────
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.js       text eol=lf
+*.mjs      text eol=lf
+*.cjs      text eol=lf
+*.jsx      text eol=lf
+*.json     text eol=lf
+*.css      text eol=lf
+*.html     text eol=lf
+*.md       text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.sh       text eol=lf
+
+# ── Binary files (no diff, no merge, no eol conversion) ──────
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.webp     binary
+*.avif     binary
+*.woff     binary
+*.woff2    binary
+*.ttf      binary
+*.eot      binary
+
+# ── Lock files (generated, always LF, no diff noise) ─────────
+package-lock.json  text eol=lf -diff
