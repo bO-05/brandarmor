@@ -1,4 +1,5 @@
 import { getBrands, getListings, isDataDirWritable, seedDemoData } from "@/persistence/store";
+import { beginDeterministicIds, endDeterministicIds } from "@/lib/utils";
 
 // Demo auto-seed
 // ---------------
@@ -9,6 +10,12 @@ import { getBrands, getListings, isDataDirWritable, seedDemoData } from "@/persi
 // ensureDemoSeeded() repopulates the idempotent demo dataset whenever the store
 // is empty. seedDemoData() upserts brands/products and skips listings that already
 // exist, so calling this repeatedly is safe.
+//
+// IMPORTANT: seeding runs inside beginDeterministicIds()/endDeterministicIds() so
+// every instance generates IDENTICAL ids for the seeded brands/products/listings.
+// Without that, each instance would seed with different random ids and deep links
+// like /listings/<id> would intermittently 404 ("Listing not found") depending on
+// which serverless instance served the request.
 //
 // Behaviour:
 //   - BRANDARMOR_AUTO_SEED=1  -> always enabled (e.g. local testing)
@@ -35,7 +42,13 @@ export function ensureDemoSeeded(): { seeded: boolean; reason?: string } {
   if (!isStoreEmpty()) return { seeded: false, reason: "already_populated" };
   try {
     _inFlight = true;
-    seedDemoData();
+    // Deterministic ids -> every instance seeds the same ids -> deep links resolve everywhere.
+    beginDeterministicIds();
+    try {
+      seedDemoData();
+    } finally {
+      endDeterministicIds();
+    }
     return { seeded: true };
   } catch (err) {
     return { seeded: false, reason: err instanceof Error ? err.message : "seed_failed" };
