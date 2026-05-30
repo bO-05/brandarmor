@@ -37,7 +37,10 @@ export function countSuspiciousTerms(text: string): number {
 }
 
 export function extractFieldsFromOcr(markdown: string): Record<string, string> {
-  const lines = markdown.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = markdown.split(/\r?\n/).flatMap((line) => {
+    const trimmed = line.trim();
+    return trimmed ? [trimmed] : [];
+  });
   const fields: Record<string, string> = {};
   const price = markdown.match(/(?:rp|idr)\s*([0-9][0-9.,]*)/i);
   if (price) fields.price_text = price[0];
@@ -57,7 +60,10 @@ export function extractFieldsFromOcr(markdown: string): Record<string, string> {
 }
 
 export function parseCosmeticsPackagingFields(markdown: string): ParsedPackagingFields {
-  const lines = markdown.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = markdown.split(/\r?\n/).flatMap((line) => {
+    const trimmed = line.trim();
+    return trimmed ? [trimmed] : [];
+  });
   const bpom = markdown.match(/\b(?:NA|NB|NC|ND|NE)\s*\d[\d\s-]{8,14}\d\b/i);
   const volume = markdown.match(/\b\d+(?:[.,]\d+)?\s*(?:ml|mL|ML|g|gr|gram)\b/);
   const expiry = markdown.match(/\b(?:exp|expired|expiry|ed|kedaluwarsa|kadaluarsa)[:\s-]*([0-3]?\d[\/.-][01]?\d[\/.-]\d{2,4}|[01]?\d[\/.-]\d{2,4})\b/i);
@@ -82,15 +88,16 @@ export function parseCosmeticsPackagingFields(markdown: string): ParsedPackaging
 
 function flattenMarkdown(raw: any): string {
   const pages = Array.isArray(raw?.pages) ? raw.pages : [];
-  const text = pages.map((p: any) => p?.markdown).filter(Boolean).join("\n\n");
+  const text = pages.flatMap((p: any) => p?.markdown ? [p.markdown] : []).join("\n\n");
   return text || "";
 }
 
 function confidenceFromRaw(raw: any): number | null {
   const pages = Array.isArray(raw?.pages) ? raw.pages : [];
-  const scores = pages
-    .map((p: any) => p?.confidence_scores?.average ?? p?.confidence_scores?.page?.average)
-    .filter((n: unknown): n is number => typeof n === "number");
+  const scores = pages.flatMap((p: any) => {
+    const score = p?.confidence_scores?.average ?? p?.confidence_scores?.page?.average;
+    return typeof score === "number" ? [score] : [];
+  });
   if (!scores.length) return null;
   return Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 1000) / 1000;
 }

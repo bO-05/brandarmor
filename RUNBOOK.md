@@ -68,6 +68,27 @@ Optional environment diagnostics:
 npm run verify:env
 ```
 
+Optional React/Next quality scan:
+
+```powershell
+npx react-doctor@latest --verbose
+```
+
+React Doctor currently requires Node `20.19.0` or newer. In the Codex Windows environment used for the latest verification, the default Node was older, so the scan was run with the installed Node `22.22.0` on `PATH` and a workspace-local npm cache:
+
+```powershell
+$env:Path='C:\Users\user\AppData\Roaming\nvm\v22.22.0;'+$env:Path
+$env:npm_config_cache='D:\Repo\brandarmor\.npm-cache'
+npx --yes react-doctor@latest --verbose
+```
+
+Expected current result:
+
+```text
+No issues found
+100 / 100
+```
+
 ## Run The Demo
 
 ```powershell
@@ -119,6 +140,7 @@ Do not delete source files when resetting demo data.
 - `npm run typecheck` passes.
 - `BPOM_DISABLE_API=1 npm test` passes.
 - `npm run build` passes.
+- `npx react-doctor@latest --verbose` reports `No issues found` and `100/100`.
 - Hydrated browser smoke checks pass for `/`, `/demo`, `/listings/new`, `/listings/import`, unlinked and linked listing detail pages, `/review`, and `/evaluation` when UI flows are changed. If no browser tool is available, use built-route HTTP smoke checks and clearly state that visual viewport inspection was skipped.
 - `.env.local` is not present in Git.
 - `.brandarmor-data/`, `.next/`, and `node_modules/` are not present in Git.

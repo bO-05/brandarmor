@@ -54,6 +54,19 @@ The straightforward-use consolidation pass clarifies `/` as the workspace status
 
 The latest local verification has `181/181` automated tests passing, `npm run typecheck` passing, `npm run build` passing, and HTTP smoke checks returning 200 for `/`, `/demo`, `/listings/new`, `/listings/import`, a linked listing detail page, `/review`, and `/evaluation`.
 
+## v4.3 React Doctor Quality Pass
+
+The local app now has a clean `npx react-doctor@latest` scan: `No issues found` and `100/100` on `react-doctor` v0.2.14. The pass added route-level metadata through server `page.tsx` wrappers, moved interactive route bodies into colocated `page-client.tsx` modules, replaced remaining mount-time page data fetches with server-provided initial data where practical, added reducer-backed state for clustered review/evaluation/listing workflows, improved control labels and button types, and split listing detail into focused render sections.
+
+The pass intentionally did not change product claims, scoring logic, review status semantics, provider contracts, persistence, or mock/real integration labeling. `react-doctor.config.json` contains narrow `deslop/unused-file` overrides for reachable app/test modules that the analyzer classified incorrectly.
+
+Verification for this checkpoint:
+
+- `npx react-doctor@latest --verbose`: `No issues found`, `100/100`.
+- `npm run typecheck`: passing.
+- `BPOM_DISABLE_API=1 npm test`: `181/181` tests passing.
+- `npm run build`: passing.
+
 ## Strategic Learning
 
 The strongest product thesis is not "AI proves counterfeits." The stronger thesis is:

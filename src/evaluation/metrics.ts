@@ -1,4 +1,4 @@
-﻿import type { EvaluationMetrics, GroundTruthLabel, RiskLevel, Score } from "@/domain/types";
+import type { EvaluationMetrics, GroundTruthLabel, RiskLevel, Score } from "@/domain/types";
 
 export function computeMetrics(
   cases: Array<{
@@ -25,7 +25,7 @@ export function computeMetrics(
   const fpr = fp + tn > 0 ? fp / (fp + tn) : 0;
   const fnr = fn + tp > 0 ? fn / (fn + tp) : 0;
   const accuracy = total > 0 ? (tp + tn) / total : 0;
-  const sorted = [...cases].sort((a, b) => b.score.totalScore - a.score.totalScore);
+  const sorted = cases.toSorted((a, b) => b.score.totalScore - a.score.totalScore);
   const k = Math.min(10, sorted.length);
   const topK = k > 0 ? sorted.slice(0, k) : [];
   const precisionAtK = k > 0 ? topK.filter((c) => c.groundTruth === "counterfeit" || c.groundTruth === "likely_counterfeit" || c.groundTruth === "expired_or_unsafe").length / k : 0;

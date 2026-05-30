@@ -1,5 +1,17 @@
 # BrandArmor Error Log
 
+## 2026-05-30
+
+- Task: Run `npx react-doctor@latest` in the Codex Windows environment.
+- What did not work: The default Node on `PATH` was `v20.11.1`, below React Doctor's required Node `20.19.0+`, and the first workspace-cache install left an incomplete `_npx` package cache without the Windows `oxc-parser` native binding. The default npm cache path also hit a Windows `EPERM` write error under the sandbox.
+- What worked instead: Use the installed Node `v22.22.0`, set `npm_config_cache` to `D:\Repo\brandarmor\.npm-cache`, remove the incomplete workspace `.npm-cache\_npx` cache once, then run `npx --yes react-doctor@latest --verbose`.
+- Note for next time: For React Doctor in this repo, prefer:
+  ```powershell
+  $env:Path='C:\Users\user\AppData\Roaming\nvm\v22.22.0;'+$env:Path
+  $env:npm_config_cache='D:\Repo\brandarmor\.npm-cache'
+  npx --yes react-doctor@latest --verbose
+  ```
+
 ## 2026-05-24
 
 - Task: Start local dev server for Browser smoke verification.

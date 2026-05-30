@@ -128,7 +128,7 @@ function parseAnthropicJudge(raw: any, fallback: JudgePayload): JudgePayload {
   if (toolUse?.input && typeof toolUse.input === "object") {
     return normalizeJudgePayload(toolUse.input as Partial<JudgePayload>, fallback);
   }
-  const text = raw?.content?.map?.((c: any) => c?.text).filter(Boolean).join("\n") ?? "";
+  const text = raw?.content?.flatMap?.((c: any) => c?.text ? [c.text] : []).join("\n") ?? "";
   return safeParseJudge(text, fallback);
 }
 

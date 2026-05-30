@@ -464,7 +464,10 @@ function statusTone(value: string | null): ListingCaseBriefStatus["tone"] {
 }
 
 function dedupe(values: string[]): string[] {
-  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+  return Array.from(new Set(values.flatMap((value) => {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  })));
 }
 
 export function buildListingCaseBrief(input: ListingCaseBriefInput): ListingCaseBrief {
@@ -939,9 +942,9 @@ export function selectReviewAlternativeOptions(suggestedStatus: ReviewStatus): R
     "escalated",
   ];
 
-  return statuses
-    .filter((status) => status !== suggestedStatus)
-    .map((status) => ({ status, ...getReviewStatusPresentation(status) }));
+  return statuses.flatMap((status) => (
+    status === suggestedStatus ? [] : [{ status, ...getReviewStatusPresentation(status) }]
+  ));
 }
 
 export function getReviewQueueEmptyState({

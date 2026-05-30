@@ -23,13 +23,17 @@ export function getScoreColor(score: number): string {
   return 'text-green-600';
 }
 
+const idrCurrencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
+const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+
 export function formatCurrency(value: number | null | undefined, currency: string | null): string {
   if (value == null) return '---';
   const c = currency || 'IDR';
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: c, minimumFractionDigits: 0 }).format(value);
+  if (c === 'IDR') return idrCurrencyFormatter.format(value);
+  return `${c} ${value.toLocaleString('id-ID')}`;
 }
 
 export function formatDate(date: string | null | undefined): string {
   if (!date) return '---';
-  return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date));
+  return dateTimeFormatter.format(new Date(date));
 }

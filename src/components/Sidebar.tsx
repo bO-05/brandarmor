@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Shield, Building2, Package, ClipboardCheck, BarChart3, Search, PlayCircle } from "lucide-react";
+import { fetchJsonObject } from "@/lib/api-client";
 import { decorateSidebarNavigationGroups, getSidebarNavigationGroups, type AmbientStatusInput } from "@/lib/ui-ux";
 
 const iconByHref = {
@@ -25,11 +27,20 @@ export function Sidebar() {
 
     async function loadStatus() {
       try {
-        const ambient = await fetch("/api/status").then((r) => r.json());
+        const ambient = await fetchJsonObject<AmbientStatusInput>("/api/status", {
+          listingCount: 0,
+          unlinkedListingCount: 0,
+          unscoredListingCount: 0,
+          pendingReviewCount: 0,
+          highRiskScoreCount: 0,
+          evaluationCaseCount: 0,
+          reviewDecisionCount: 0,
+          currentPath: pathname,
+        });
         if (cancelled) return;
 
         setStatus({
-          ...ambient,
+          ...ambient.data,
           currentPath: pathname,
         });
       } catch {
@@ -49,7 +60,7 @@ export function Sidebar() {
     <aside className="shrink-0 border-b border-border bg-card md:flex md:h-screen md:w-60 md:flex-col md:border-b-0 md:border-r">
       <div className="p-4 border-b border-border md:p-5">
         <div className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-primary" />
+          <Image src="/brandarmor-icons/icon-color-transparent.svg" alt="" width={24} height={24} className="size-6 shrink-0" />
           <span className="font-bold text-lg">BrandArmor v4</span>
         </div>
       </div>
@@ -75,7 +86,7 @@ export function Sidebar() {
                       active ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="size-4" />
                     <span className="min-w-0 flex-1 truncate">{label}</span>
                     {badge && (
                       <span className={`ml-auto rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-none ${active ? "bg-primary-foreground/20 text-primary-foreground" : badgeClass}`}>

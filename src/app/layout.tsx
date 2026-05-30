@@ -7,6 +7,18 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 export const metadata: Metadata = {
   title: "BrandArmor v4 - Evidence Review",
   description: "Evidence-backed suspicious listing review app",
+  applicationName: "BrandArmor",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/brandarmor-icons/icon-color-light.svg", type: "image/svg+xml" },
+      { url: "/brandarmor-icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/brandarmor-icons/favicon-128.png", sizes: "128x128", type: "image/png" },
+    ],
+    apple: [
+      { url: "/brandarmor-icons/app-icon-light-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getEvaluationCases, createEvaluationCasesBulk } from "@/persistence/store";
 import { computeScore } from "@/domain/scoring";
 import { computeMetricsByThresholds } from "@/evaluation/metrics";

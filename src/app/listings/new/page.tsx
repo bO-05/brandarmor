@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -106,7 +106,7 @@ export default function NewListingPage() {
           <label className="block text-sm font-medium mb-1">Product Baseline</label>
           <select value={form.productId} onChange={(e) => set("productId", e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background">
             <option value="">No baseline selected</option>
-            {products.map((p) => <option key={p.id} value={p.id}>{p.name}{p.bpomNie ? ` · ${p.bpomNie}` : ""}</option>)}
+            {products.map((p) => <option key={p.id} value={p.id}>{p.name}{p.bpomNie ? ` � ${p.bpomNie}` : ""}</option>)}
           </select>
           <p className="mt-1 text-xs text-muted-foreground">
             Optional for intake, but required before OCR, BPOM/NIE, visual comparison, scoring, and judge assessment can run.

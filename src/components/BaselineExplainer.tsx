@@ -22,7 +22,7 @@ export function BaselineExplainer({ className = "" }: { className?: string }) {
       <div className="mt-3 grid gap-2 md:grid-cols-2">
         <div className="rounded-md border border-success/30 bg-success/10 p-3">
           <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-success">
-            <CheckCircle2 className="h-3.5 w-3.5" />
+            <CheckCircle2 className="size-3.5" />
             Linking does
           </p>
           <ul className="space-y-1 text-xs text-muted-foreground">
@@ -33,7 +33,7 @@ export function BaselineExplainer({ className = "" }: { className?: string }) {
         </div>
         <div className="rounded-md border border-border bg-background p-3">
           <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-            <XCircle className="h-3.5 w-3.5" />
+            <XCircle className="size-3.5" />
             Linking does not
           </p>
           <ul className="space-y-1 text-xs text-muted-foreground">

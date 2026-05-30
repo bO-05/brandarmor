@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getBrands, createBrand, seedDemoData } from "@/persistence/store";
 import { insertBrandSchema } from "@/domain/schemas";
 

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { enrichScoreReasons, getEvidence, getLatestOcrArtifact, getLatestRegulatoryCheck, getLatestVisualMatch, getScore, getScores, createScore, getListing, getProduct } from "@/persistence/store";
 import { computeScore } from "@/domain/scoring";
 

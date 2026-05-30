@@ -48,6 +48,8 @@ Do not claim:
 - LLM evidence judge integration path through Anthropic or Mistral.
 - Human review decisions.
 - Guided dashboard/status start, single guided demo action, consolidated ambient status endpoint, task-oriented empty states, action-first listing workspace, baseline-gated listing pipeline, case brief, claim-safe media preview, baseline explanation copy, inline review decision panel on listing detail, confirmation-based internal label saves, post-review next-step guidance, responsive app shell, internal review queue counts, touch-accessible glossary help, plain-language evaluation readout, grouped manual intake, and sample-assisted JSON import.
+- Route pages use server `page.tsx` wrappers for metadata and colocated `page-client.tsx` files for interactive UI where needed.
+- React Doctor v0.2.14 reports `No issues found` and `100/100` in the current local verification.
 - Evaluation metrics and test coverage.
 - `181/181` automated tests passing in the current local verification.
 - Real BPOM-backed Somethinc and Gloglowing product baselines in demo seed data.
@@ -66,12 +68,13 @@ Do not claim:
 2. Run `npm run typecheck`.
 3. Run tests with `BPOM_DISABLE_API=1`.
 4. Run `npm run build`.
-5. Start with `npm run dev`.
-6. Open `http://localhost:3015/`.
-7. Use `Start` for workspace status, then click `Run Demo` / `Run Demo Pipeline`.
-8. Open the generated listing and confirm the top next-action band, case brief, media preview, baseline-gated pipeline, inline review decision panel, full evidence workspace disclosure, internal review queue counts, and evaluation summary still use evidence-backed review language.
-9. For production-like local testing on port 3000, run `.\scripts\start-local.ps1`; this reads `.env.local` explicitly and avoids stale parent shell API keys.
-10. Record any blocker in a new issue or handoff note instead of silently changing claims.
+5. Run `npx react-doctor@latest --verbose` with Node `20.19.0+` and confirm `100/100`.
+6. Start with `npm run dev`.
+7. Open `http://localhost:3015/`.
+8. Use `Start` for workspace status, then click `Run Demo` / `Run Demo Pipeline`.
+9. Open the generated listing and confirm the top next-action band, case brief, media preview, baseline-gated pipeline, inline review decision panel, full evidence workspace disclosure, internal review queue counts, and evaluation summary still use evidence-backed review language.
+10. For production-like local testing on port 3000, run `.\scripts\start-local.ps1`; this reads `.env.local` explicitly and avoids stale parent shell API keys.
+11. Record any blocker in a new issue or handoff note instead of silently changing claims.
 
 ## Suggested Next Implementation Priority
 

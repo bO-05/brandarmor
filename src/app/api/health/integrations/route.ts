@@ -10,12 +10,27 @@ type IntegrationState = {
   notes: string;
 };
 
+const roadmapIntegrations = {
+  browserUseCapture: {
+    implemented: false,
+    mode: "roadmap",
+    provider: "browser-use",
+    notes: "Configured in env for future user-guided capture, but this v0.4.2 app does not call it yet.",
+  },
+  huggingFaceVision: {
+    implemented: false,
+    mode: "roadmap",
+    provider: "huggingface",
+    notes: "Reserved for future image similarity/OCR benchmarks. Not used by current app routes.",
+  },
+} satisfies Record<string, Omit<IntegrationState, "configured">>;
+
 function configured(name: string): boolean {
   return hasEnvValue(name);
 }
 
-export async function GET() {
-  const integrations: Record<string, IntegrationState> = {
+function buildIntegrations(): Record<string, IntegrationState> {
+  return {
     mistralOcr: {
       configured: configured("MISTRAL_API_KEY"),
       implemented: true,
@@ -56,20 +71,16 @@ export async function GET() {
       notes: "No key required. Public BPOM endpoint can still fail or change, so source URLs remain part of evidence review.",
     },
     browserUseCapture: {
+      ...roadmapIntegrations.browserUseCapture,
       configured: configured("BROWSER_USE_ENDPOINT"),
-      implemented: false,
-      mode: "roadmap",
-      provider: "browser-use",
-      notes: "Configured in env for future user-guided capture, but this v0.4.2 app does not call it yet.",
     },
     huggingFaceVision: {
+      ...roadmapIntegrations.huggingFaceVision,
       configured: configured("HF_API_TOKEN"),
-      implemented: false,
-      mode: "roadmap",
-      provider: "huggingface",
-      notes: "Reserved for future image similarity/OCR benchmarks. Not used by current app routes.",
     },
   };
+}
 
-  return NextResponse.json({ integrations }, { headers: { "Cache-Control": "no-store" } });
+export async function GET() {
+  return NextResponse.json({ integrations: buildIntegrations() }, { headers: { "Cache-Control": "no-store" } });
 }

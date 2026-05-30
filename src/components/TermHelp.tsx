@@ -23,9 +23,9 @@ export function TermHelp({ term }: { term: TermHelpKey }) {
             setOpen(false);
           }
         }}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
       >
-        <HelpCircle className="h-3.5 w-3.5" />
+        <HelpCircle className="size-3.5" />
       </button>
       {open && (
         <span

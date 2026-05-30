@@ -45,10 +45,10 @@ interface DemoRun {
 const signalOrder: Array<"ocr" | "bpom" | "visual" | "judge"> = ["ocr", "bpom", "visual", "judge"];
 
 function StateIcon({ state }: { state: OperationState }) {
-  if (state === "completed") return <CheckCircle2 className="w-4 h-4 text-success" />;
-  if (state === "running") return <Loader2 className="w-4 h-4 animate-spin text-warning" />;
-  if (state === "failed") return <XCircle className="w-4 h-4 text-destructive" />;
-  return <CircleDashed className="w-4 h-4 text-muted-foreground" />;
+  if (state === "completed") return <CheckCircle2 className="size-4 text-success" />;
+  if (state === "running") return <Loader2 className="size-4 animate-spin text-warning" />;
+  if (state === "failed") return <XCircle className="size-4 text-destructive" />;
+  return <CircleDashed className="size-4 text-muted-foreground" />;
 }
 
 function ProvenanceBadge({ signal }: { signal: NonNullable<DemoRun["signals"]>[keyof NonNullable<DemoRun["signals"]>] }) {
@@ -123,8 +123,8 @@ export default function DemoPage() {
               Seed the demo case, collect available evidence, compute the advisory routing score, and prepare the internal review item.
             </p>
           </div>
-          <button onClick={runDemo} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+          <button type="button" onClick={runDemo} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60">
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
             Run Demo Pipeline
           </button>
         </div>
@@ -157,7 +157,7 @@ export default function DemoPage() {
             {steps.map(({ title, icon: Icon, state }, index) => (
               <div key={title} className="rounded-md border border-border p-3">
                 <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-primary" />
+                  <Icon className="size-4 text-primary" />
                   <span className="text-sm font-medium">{index + 1}. {title}</span>
                   <span className="ml-auto"><StateIcon state={state} /></span>
                 </div>

@@ -108,9 +108,9 @@ function statusAfterEvent(current: InvestigationRunStatus, event: InvestigationE
 
 function missingEvidenceFor(events: InvestigationEvent[]): string[] {
   const completed = new Set(events.map((event) => event.type));
-  return STEP_TO_MISSING_EVIDENCE
-    .filter((step) => !completed.has(step.eventType))
-    .map((step) => step.missing);
+  return STEP_TO_MISSING_EVIDENCE.flatMap((step) => (
+    completed.has(step.eventType) ? [] : [step.missing]
+  ));
 }
 
 function nextActionsFor(missingEvidence: string[]): string[] {

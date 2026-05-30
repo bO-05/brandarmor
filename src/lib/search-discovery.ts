@@ -1,5 +1,13 @@
 import { envValue } from "@/lib/env";
 
+const MARKETPLACE_PATTERNS = [
+  { name: "shopee", pattern: /shopee/i },
+  { name: "tokopedia", pattern: /tokopedia/i },
+  { name: "bukalapak", pattern: /bukalapak/i },
+  { name: "blibli", pattern: /blibli/i },
+  { name: "lazada", pattern: /lazada/i },
+];
+
 export interface DiscoveryCandidate {
   title: string;
   url: string;
@@ -39,14 +47,17 @@ export async function discoverCandidates(query: string): Promise<DiscoveryCandid
   try {
     const parsed = JSON.parse(content.replace(/^```json\s*/i, "").replace(/```$/i, ""));
     if (Array.isArray(parsed)) {
-      return parsed.slice(0, 5).map((item: any) => ({
-        title: String(item.title ?? query),
-        url: String(item.url ?? ""),
-        snippet: String(item.snippet ?? ""),
-        marketplace: String(item.marketplace ?? inferMarketplace(String(item.url ?? ""))),
-        source: "perplexity" as const,
-        sourceConfidence: 0.55,
-      })).filter((c) => c.url);
+      return parsed.slice(0, 5).flatMap((item: any) => {
+        const url = String(item.url ?? "");
+        return url ? [{
+          title: String(item.title ?? query),
+          url,
+          snippet: String(item.snippet ?? ""),
+          marketplace: String(item.marketplace ?? inferMarketplace(url)),
+          source: "perplexity" as const,
+          sourceConfidence: 0.55,
+        }] : [];
+      });
     }
   } catch {
     // Fall through to transparent mock-style candidate preserving raw answer.
@@ -62,9 +73,8 @@ export async function discoverCandidates(query: string): Promise<DiscoveryCandid
 }
 
 function inferMarketplace(url: string): string {
-  const lower = url.toLowerCase();
-  for (const mp of ["shopee", "tokopedia", "bukalapak", "blibli", "lazada"]) {
-    if (lower.includes(mp)) return mp;
+  for (const marketplace of MARKETPLACE_PATTERNS) {
+    if (marketplace.pattern.test(url)) return marketplace.name;
   }
   return "web";
 }

@@ -76,7 +76,7 @@ function parseSetCookieHeader(setCookieValue: string | null): string {
   const parts = setCookieValue.split(/,(?=\s*[A-Za-z0-9_\-]+=)/);
   for (const part of parts) {
     const nameValue = part.split(";")[0].trim();
-    if (nameValue && nameValue.includes("=")) {
+    if (nameValue && /^[^=]+=/.test(nameValue)) {
       cookies.push(nameValue);
     }
   }

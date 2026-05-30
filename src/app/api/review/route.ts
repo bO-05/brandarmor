@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getReviewDecisions, getReviewDecision, createReviewDecision, updateReviewDecision } from "@/persistence/store";
 import { insertReviewDecisionSchema } from "@/domain/schemas";
 import { isValidTransition, getAllowedTransitions } from "@/domain/review";

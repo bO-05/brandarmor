@@ -1,5 +1,19 @@
 # BrandArmor Memory
 
+## 2026-05-30 - React Doctor Quality Pass
+
+What was decided:
+BrandArmor should keep the Next.js App Router pages claim-safe while also satisfying React Doctor's current React/Next quality checks. Route pages now use server wrappers with metadata where needed and delegate interactive surfaces to `page-client.tsx` modules. Listing detail state is reducer-backed and the large listing workspace render was split into focused sections without changing product claims, persistence, scoring, provider behavior, or review semantics.
+
+Why:
+The app needed a clean `npx react-doctor@latest` result before further feature work. The initial scan reported 228 issues and an 83/100 score. The final scan reports `No issues found` and `100/100`, while `npm run typecheck`, `BPOM_DISABLE_API=1 npm test`, and `npm run build` all pass.
+
+What was rejected:
+Deleting reachable source files to satisfy `deslop/unused-file`, broad rule suppression, changing product doctrine, changing review labels, changing storage, adding new data libraries, or claiming production readiness. A narrow `react-doctor.config.json` override was used only for reachable app/test files that the analyzer misclassified as unused.
+
+Next:
+Keep route-level metadata in server `page.tsx` files and put interactive page logic in colocated `page-client.tsx` files. Run React Doctor with Node `20.19.0+` or the installed Node `22.22.0` path when checking this repo.
+
 ## 2026-05-24 - Straightforward Use UX Consolidation
 
 What was decided:

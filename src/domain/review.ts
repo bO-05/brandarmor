@@ -1,4 +1,4 @@
-﻿import type { ReviewStatus } from "./types";
+import type { ReviewStatus } from "./types";
 
 const VALID_TRANSITIONS: Record<ReviewStatus, ReviewStatus[]> = {
   pending: ["confirmed_counterfeit", "likely_counterfeit", "rejected_legitimate", "gray_market_import", "expired_or_unsafe", "needs_more_evidence", "escalated"],

@@ -1,4 +1,4 @@
-﻿import type { InsertListing } from "./schemas";
+import type { InsertListing } from "./schemas";
 
 export interface ImportResult {
   listings: InsertListing[];

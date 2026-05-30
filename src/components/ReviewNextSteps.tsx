@@ -29,7 +29,7 @@ export function ReviewNextSteps({
           <Link key={action.href + action.label} href={action.href} className="rounded-md border border-border bg-background p-3 text-sm transition-colors hover:bg-muted">
             <span className="flex items-center justify-between gap-2 font-semibold">
               {action.label}
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="size-4" />
             </span>
             <span className="mt-1 block text-xs leading-5 text-muted-foreground">{action.detail}</span>
           </Link>

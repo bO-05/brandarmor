@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useReducer } from "react";
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Loader2, Sparkles } from "lucide-react";
 import type { ReviewDecision, ReviewStatus } from "@/domain/types";
 import { getAllowedTransitions, isTerminal } from "@/domain/review";
@@ -30,6 +30,47 @@ function chooseSuggestedStatus(score: ReviewRecommendationScore | null, allowed:
   return allowed[0] ?? null;
 }
 
+type ReviewPanelState = {
+  expanded: boolean;
+  selectedStatus: ReviewStatus | null;
+  pendingStatus: ReviewStatus | null;
+  saving: boolean;
+  error: string | null;
+};
+
+type ReviewPanelAction =
+  | { type: "toggle_expanded" }
+  | { type: "select_status"; status: ReviewStatus }
+  | { type: "set_pending"; status: ReviewStatus | null }
+  | { type: "save_started" }
+  | { type: "save_failed"; error: string }
+  | { type: "save_finished" };
+
+const initialReviewPanelState: ReviewPanelState = {
+  expanded: false,
+  selectedStatus: null,
+  pendingStatus: null,
+  saving: false,
+  error: null,
+};
+
+function reviewPanelReducer(state: ReviewPanelState, action: ReviewPanelAction): ReviewPanelState {
+  switch (action.type) {
+    case "toggle_expanded":
+      return { ...state, expanded: !state.expanded };
+    case "select_status":
+      return { ...state, selectedStatus: action.status };
+    case "set_pending":
+      return { ...state, pendingStatus: action.status };
+    case "save_started":
+      return { ...state, saving: true, error: null };
+    case "save_failed":
+      return { ...state, saving: false, error: action.error };
+    case "save_finished":
+      return { ...state, saving: false, pendingStatus: null, expanded: false };
+  }
+}
+
 export function ReviewDecisionPanel({
   listingId,
   decision,
@@ -47,11 +88,8 @@ export function ReviewDecisionPanel({
   id?: string;
   className?: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<ReviewStatus | null>(null);
-  const [pendingStatus, setPendingStatus] = useState<ReviewStatus | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(reviewPanelReducer, initialReviewPanelState);
+  const { expanded, selectedStatus, pendingStatus, saving, error } = state;
 
   const allowedTransitions = useMemo(() => decision ? getAllowedTransitions(decision.status) : [], [decision]);
   const suggestedStatus = useMemo(() => chooseSuggestedStatus(score, allowedTransitions), [allowedTransitions, score]);
@@ -61,19 +99,16 @@ export function ReviewDecisionPanel({
   const otherActions = suggestedStatus
     ? selectReviewAlternativeOptions(suggestedStatus).filter((option) => allowedTransitions.includes(option.status))
     : [];
-  const activeSelection = selectedStatus ?? otherActions[0]?.status ?? null;
+  const activeSelection = selectedStatus && otherActions.some((option) => option.status === selectedStatus)
+    ? selectedStatus
+    : otherActions[0]?.status ?? null;
   const pendingPresentation = pendingStatus ? getReviewStatusPresentation(pendingStatus) : null;
   const confirmation = pendingStatus ? getReviewConfirmation(pendingStatus) : null;
   const terminal = decision ? isTerminal(decision.status) : false;
 
-  useEffect(() => {
-    setSelectedStatus(otherActions[0]?.status ?? null);
-  }, [suggestedStatus]);
-
   async function saveStatus() {
     if (!pendingStatus) return;
-    setSaving(true);
-    setError(null);
+    dispatch({ type: "save_started" });
     try {
       const res = await fetch("/api/review", {
         method: "PATCH",
@@ -83,12 +118,9 @@ export function ReviewDecisionPanel({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Review label could not be saved");
       await onSaved?.(pendingStatus);
-      setPendingStatus(null);
-      setExpanded(false);
+      dispatch({ type: "save_finished" });
     } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSaving(false);
+      dispatch({ type: "save_failed", error: (e as Error).message });
     }
   }
 
@@ -108,7 +140,7 @@ export function ReviewDecisionPanel({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5" />
+            <Sparkles className="size-3.5" />
             Review decision
           </p>
           <h3 className="mt-1 text-base font-semibold">{title ?? "Evidence bundle"}</h3>
@@ -137,8 +169,8 @@ export function ReviewDecisionPanel({
                   : "This is the safest available next label from the current review state."}
               </p>
             </div>
-            <button
-              onClick={() => setPendingStatus(suggestedStatus)}
+            <button type="button"
+              onClick={() => dispatch({ type: "set_pending", status: suggestedStatus })}
               className={`inline-flex min-h-9 items-center justify-center rounded-md px-3 py-2 text-xs font-semibold ${toneClass(suggestedPresentation.tone)}`}
             >
               Confirm suggested label
@@ -147,26 +179,26 @@ export function ReviewDecisionPanel({
 
           {otherActions.length > 0 && (
             <>
-              <button
-                onClick={() => setExpanded((value) => !value)}
+              <button type="button"
+                onClick={() => dispatch({ type: "toggle_expanded" })}
                 className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
               >
-                {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
                 {expanded ? "Hide alternate label" : "Choose a different label"}
               </button>
               {expanded && (
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
                   <select
                     value={activeSelection ?? ""}
-                    onChange={(event) => setSelectedStatus(event.target.value as ReviewStatus)}
+                    onChange={(event) => dispatch({ type: "select_status", status: event.target.value as ReviewStatus })}
                     className="min-h-10 rounded-md border border-border bg-background px-3 py-2 text-sm"
                   >
                     {otherActions.map((option) => (
                       <option key={option.status} value={option.status}>{option.actionLabel}</option>
                     ))}
                   </select>
-                  <button
-                    onClick={() => activeSelection && setPendingStatus(activeSelection)}
+                  <button type="button"
+                    onClick={() => activeSelection && dispatch({ type: "set_pending", status: activeSelection })}
                     disabled={!activeSelection}
                     className="inline-flex min-h-10 items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground disabled:opacity-60"
                   >
@@ -187,7 +219,7 @@ export function ReviewDecisionPanel({
       {pendingStatus && pendingPresentation && confirmation && (
         <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
             <div>
               <p className="text-sm font-semibold">{confirmation.title}</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">{confirmation.summary}</p>
@@ -195,16 +227,16 @@ export function ReviewDecisionPanel({
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
+            <button type="button"
               onClick={saveStatus}
               disabled={saving}
               className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
             >
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              {saving ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
               {saving ? "Saving..." : confirmation.confirmLabel}
             </button>
-            <button
-              onClick={() => setPendingStatus(null)}
+            <button type="button"
+              onClick={() => dispatch({ type: "set_pending", status: null })}
               disabled={saving}
               className="inline-flex min-h-9 items-center rounded-md bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground disabled:opacity-60"
             >

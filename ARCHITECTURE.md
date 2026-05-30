@@ -19,7 +19,7 @@ BrandArmor v4 is an evidence-first counterfeit risk review system. It does not t
 
 ## Directory Map
 
-- `src/app/`: pages and route handlers.
+- `src/app/`: pages and route handlers. Interactive routes may use server `page.tsx` wrappers for metadata and colocated `page-client.tsx` files for client UI.
 - `src/domain/`: core types, schemas, scoring, review transitions, imports.
 - `src/domain/investigation.ts`: durable investigation event state and compact context packs for agent-style workflows.
 - `src/persistence/store.ts`: local JSON-file store and demo seed data.

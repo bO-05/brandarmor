@@ -1,0 +1,58 @@
+{
+  "ignore": {
+    "overrides": [
+      {
+        "files": [
+          "src/components/BaselineExplainer.tsx",
+          "src/components/DemoWorkflowTrail.tsx",
+          "src/components/ListingMediaPanel.tsx",
+          "src/components/ReviewDecisionPanel.tsx",
+          "src/components/ReviewNextSteps.tsx",
+          "src/components/Sidebar.tsx",
+          "src/components/TermHelp.tsx",
+          "src/domain/import.ts",
+          "src/domain/index.ts",
+          "src/domain/investigation.ts",
+          "src/domain/review.ts",
+          "src/domain/schemas.ts",
+          "src/domain/scoring.ts",
+          "src/domain/types.ts",
+          "src/evaluation/fixtures.ts",
+          "src/evaluation/index.ts",
+          "src/evaluation/metrics.ts",
+          "src/lib/api-client.ts",
+          "src/lib/bpom-verify.ts",
+          "src/lib/demo-signals.ts",
+          "src/lib/discovery-defaults.ts",
+          "src/lib/env.ts",
+          "src/lib/llm-judge.ts",
+          "src/lib/mistral-ocr.ts",
+          "src/lib/regulatory-check.ts",
+          "src/lib/search-discovery.ts",
+          "src/lib/ui-ux.ts",
+          "src/lib/utils.ts",
+          "src/lib/visual-compare.ts",
+          "src/app/brands/[id]/page-client.tsx",
+          "src/app/brands/new/page-client.tsx",
+          "src/app/brands/page-client.tsx",
+          "src/app/discovery/page-client.tsx",
+          "src/app/evaluation/page-client.tsx",
+          "src/app/listings/[id]/page-client.tsx",
+          "src/app/listings/import/page-client.tsx",
+          "src/app/listings/page-client.tsx",
+          "src/app/page-client.tsx",
+          "src/app/review/page-client.tsx",
+          "tests/core-workflow-direct-verify.mjs",
+          "tests/evidence-behavioral-verify.cjs",
+          "tests/evidence-behavioral-verify.mjs",
+          "tests/evidence-behavioral.cjs",
+          "tests/evidence-direct-verify.mjs",
+          "tests/evidence-verify.cjs",
+          "tests/loader.js",
+          "tests/register-hooks.js"
+        ],
+        "rules": ["deslop/unused-file"]
+      }
+    ]
+  }
+}

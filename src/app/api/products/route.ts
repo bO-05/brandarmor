@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getProducts, createProduct } from "@/persistence/store";
 import { insertProductSchema } from "@/domain/schemas";
 

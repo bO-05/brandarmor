@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { selectAmbientStatus, type AmbientStatus } from "@/lib/ui-ux";
+import { fetchJsonObject } from "@/lib/api-client";
+import { selectAmbientStatus, type AmbientStatus, type AmbientStatusInput } from "@/lib/ui-ux";
 
 const trail = [
   { href: "/", label: "Start status" },
@@ -27,11 +28,20 @@ export function DemoWorkflowTrail() {
 
     async function loadStatus() {
       try {
-        const ambient = await fetch("/api/status").then((r) => r.json());
+        const ambient = await fetchJsonObject<AmbientStatusInput>("/api/status", {
+          listingCount: 0,
+          unlinkedListingCount: 0,
+          unscoredListingCount: 0,
+          pendingReviewCount: 0,
+          highRiskScoreCount: 0,
+          evaluationCaseCount: 0,
+          reviewDecisionCount: 0,
+          currentPath: pathname,
+        });
         if (cancelled) return;
 
         setStatus(selectAmbientStatus({
-          ...ambient,
+          ...ambient.data,
           currentPath: pathname,
         }));
       } catch {
