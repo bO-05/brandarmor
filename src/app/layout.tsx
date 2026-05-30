@@ -4,6 +4,11 @@ import { Sidebar } from "@/components/Sidebar";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+// Render pages per-request so they reflect the live (auto-seeded) store instead of
+// a stale, statically pre-rendered empty snapshot. Required for the serverless demo
+// to show populated data after cold-start seeding.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "BrandArmor v4 - Evidence Review",
   description: "Evidence-backed suspicious listing review app",
