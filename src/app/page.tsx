@@ -1,6 +1,9 @@
 import DashboardPage from "./page-client";
 import { hasEnvValue } from "@/lib/env";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import { getBrands, getEvaluationCases, getListings, getProducts, getReviewDecisions, getScores, isDataDirWritable } from "@/persistence/store";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "BrandArmor Workspace",
@@ -8,6 +11,9 @@ export const metadata = {
 };
 
 export default function Page() {
+  // Self-heal an empty serverless workspace so the landing page is never blank.
+  ensureDemoSeeded();
+
   const listings = getListings();
   const scores = getScores();
   const reviews = getReviewDecisions();
