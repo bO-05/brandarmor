@@ -2,6 +2,10 @@
 
 Evidence-first suspicious listing review app for skincare/cosmetics marketplaces. V4 routes listings for evidence-backed review: capture listing evidence, run optional Mistral OCR, compare against an official product baseline, check BPOM/NIE evidence through the BPOM adapter, run visual comparison in an adapter/mock shape, score with transparent reasons, use Claude/Mistral as an optional evidence judge, collect internal human labels, and report pilot evaluation metrics.
 
+> **PIDI Digdaya × Hackathon 2026 (Bank Indonesia) — Team P1005.**
+> Problem Statement: Percepatan Layanan Publik, Ekonomi Kreatif, dan Ekspor Jasa Digital → Digitalisasi Ekonomi Kreatif → **IP Protection (brand-side, anti-counterfeit)** + **Market Insight Industri Kreatif**.
+> Live demo: https://brandarmor.asynchronope.my.id (mirror: https://brandarmor.vercel.app). This is decision-support for prioritized review — not automatic counterfeit detection, authenticity verification, or enforcement.
+
 ## Agent Handoff
 
 If you are a coding agent taking over this app, read `HANDOFF.md` first, then `RUNBOOK.md`, `ARCHITECTURE.md`, `KNOWN_LIMITS.md`, and `VERSION_HISTORY.md`.
@@ -74,6 +78,14 @@ The current demo seed includes two real BPOM-backed baselines:
 
 Use `GET /api/health/integrations` to see which env-backed integrations are configured and which are actually implemented in this MVP. `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, `PERPLEXITY_API_KEY`, and BPOM search have app paths. `BROWSER_USE_ENDPOINT` and `HF_API_TOKEN` are reported as roadmap/not implemented so proposal claims stay honest.
 
+## Demo Data Auto-Seed
+
+On Vercel the data dir (`/tmp`) is ephemeral and per-instance, so a fresh instance starts empty. To keep the public demo from ever showing an empty workspace:
+
+- `ensureDemoSeeded()` (see `src/persistence/auto-seed.ts`) repopulates the idempotent demo dataset whenever the store is empty, wired into a cold-start `src/instrumentation.ts` hook and the dashboard page.
+- Seeded ids are **deterministic** (`beginDeterministicIds()` in `src/lib/utils.ts`), so every instance seeds identical ids and listing deep-links (`/listings/<id>`) resolve no matter which instance serves the request.
+- Auto-on for serverless; set `BRANDARMOR_AUTO_SEED=0` to disable for a real production tenant, or `=1` to force on locally.
+
 ## Current Verification
 
 - App version: `0.4.2`.
@@ -101,6 +113,7 @@ Use `GET /api/health/integrations` to see which env-backed integrations are conf
 - Browser capture is intended for user-guided evidence collection, not bulk marketplace crawling.
 - Image similarity currently uses an adapter/mock evidence shape; replace with SigLIP/DINOv2 embeddings after a labeled/reference image set exists.
 - BPOM/NIE verification can query the official `cekbpom.pom.go.id` cosmetics endpoint when network access is available; link-out/manual confirmation remains appropriate for final evidence review.
+- Local JSON persistence is demo-portable, not production storage; it does not support concurrent writers, tenant isolation, or audit-grade retention. The serverless demo relies on cold-start auto-seed (see above) rather than durable storage.
 - Gloglowing marketplace leads are currently candidate discovery/manual evidence records, not automated proof of live marketplace fraud.
 
 ## Accuracy Evidence
@@ -109,15 +122,17 @@ The scoring output is a calibrated routing score, not a legal conclusion. V4 mus
 
 ## Deployment Status
 
-- Live demo: https://brandarmor-v4-handoff.vercel.app/
-- GitHub: https://github.com/bO-05/brandarmor-v4-handoff
+- Live demo: https://brandarmor.asynchronope.my.id/ (mirror: https://brandarmor.vercel.app/)
+- GitHub: https://github.com/bO-05/brandarmor
+- Do NOT submit the `*-bo05s-projects.vercel.app` preview URLs publicly; they require Vercel auth and return 401. Use the custom domain.
+- Demo data auto-seeds on serverless cold start with deterministic ids (see "Demo Data Auto-Seed"), so the public demo is never empty and listing deep-links resolve.
 - Last local verification: `npm run typecheck`, `BPOM_DISABLE_API=1 npm test` (`181/181`), `npm run build`, and HTTP smoke checks for `/`, `/demo`, `/listings/new`, `/listings/import`, `/review`, `/evaluation`, and a linked listing detail page.
-- Do not set `BRANDARMOR_DATA_DIR=.brandarmor-data/` in Vercel. The app now ignores relative data-dir overrides in serverless mode and writes to the platform temp directory (`/tmp/.brandarmor-data` on Vercel).
+- Do not set `BRANDARMOR_DATA_DIR=.brandarmor-data/` in Vercel. The app ignores relative data-dir overrides in serverless mode and writes to the platform temp directory (`/tmp/.brandarmor-data` on Vercel).
 
 ## Quick Vercel Redeploy
 
 If the live site shows stale code:
 1. Go to https://vercel.com/dashboard
-2. Open the brandarmor-v4-handoff project
+2. Open the `brandarmor` project
 3. Deployments tab -> ... menu on latest commit -> "Redeploy"
 4. Or: Settings -> Git -> Connected Git Repository -> ensure auto-deploy is on
