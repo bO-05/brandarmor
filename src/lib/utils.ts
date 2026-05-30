@@ -2,7 +2,30 @@ export function cn(...inputs: (string | null | undefined | false)[]): string {
   return inputs.filter(Boolean).join(' ');
 }
 
+// Deterministic ID mode
+// ---------------------
+// When enabled (used ONLY while seeding demo data), uid() returns a stable,
+// ordered sequence instead of random values. This guarantees that every
+// serverless instance seeds the demo dataset with IDENTICAL ids, so a link to a
+// specific listing/brand resolves no matter which instance serves the request.
+// Without this, each Vercel instance seeds /tmp with different random ids and
+// deep links (e.g. /listings/<id>) intermittently 404 with "Listing not found".
+let _deterministicCounter: number | null = null;
+
+export function beginDeterministicIds(start = 0): void {
+  _deterministicCounter = start;
+}
+
+export function endDeterministicIds(): void {
+  _deterministicCounter = null;
+}
+
 export function uid(): string {
+  if (_deterministicCounter !== null) {
+    _deterministicCounter += 1;
+    // Distinct prefix + zero padding so seeded ids never collide with random ids.
+    return "seed" + String(_deterministicCounter).padStart(10, "0");
+  }
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
