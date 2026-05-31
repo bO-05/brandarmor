@@ -11,7 +11,7 @@ Preserve this claim discipline in code, UI copy, docs, demos, and reports.
 - Stack: Next.js 15 App Router, React 19, TypeScript, Tailwind CSS v4, Zod, Vitest.
 - Domain: skincare/cosmetics marketplace listing risk review.
 - Core proof unit: evidence records tied to listings, product baselines, source metadata, scores, judge assessments, and human review decisions.
-- Current persistence: local JSON files for demo portability. Do not present it as production storage.
+- Current persistence: local JSON files for demo portability. On Vercel/serverless, empty temp stores auto-seed the demo dataset with deterministic IDs; do not present this as production storage.
 - Current vision path: adapter/mock visual evidence. Do not claim SigLIP, DINOv2, CLIP, or production image retrieval is implemented until it exists and is tested.
 
 ## Default Behavior

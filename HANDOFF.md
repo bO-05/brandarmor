@@ -23,6 +23,8 @@ Start here:
 
 BrandArmor v4 is a demo-grade evidence-first suspicious listing review app for marketplace listings. It is more advanced than the previous workspace versions because it includes a guided cold-user dashboard path, a listing evidence workspace, evidence records, deterministic scoring, OCR artifacts, regulatory/BPOM-NIE signals, visual-match placeholders, structured LLM evidence judge output, internal human review decisions, and evaluation metrics.
 
+The current deployed demo is no longer supposed to open as an empty workspace on public Vercel domains. Serverless temp stores auto-seed the demo dataset when empty, and the seeded IDs are deterministic so deep links resolve across instances.
+
 It is not production-ready. It does not yet have authentication, tenant isolation, production database storage, object storage, CI/CD, monitoring, robust marketplace crawling, or a validated real-world labeled dataset.
 
 ## Main Claim To Preserve
@@ -53,6 +55,8 @@ Do not claim:
 - Evaluation metrics and test coverage.
 - `181/181` automated tests passing in the current local verification.
 - Real BPOM-backed Somethinc and Gloglowing product baselines in demo seed data.
+- Vercel/serverless demo auto-seeding for empty `/tmp` stores.
+- Deterministic seeded demo IDs, including stable listing deep links such as `/listings/seed0000000060`.
 
 ## What Is Mock Or Demo-Safe
 
@@ -60,6 +64,7 @@ Do not claim:
 - Visual similarity is an adapter/mock evidence shape, not a real embedding-backed vision model.
 - Discovery is candidate lead generation, not authoritative marketplace crawling.
 - Local JSON persistence is demo-safe, not multi-user production storage.
+- Vercel/serverless `/tmp` persistence is auto-seeded for demo reliability, but remains ephemeral and not production storage.
 - Browser-Use and Hugging Face env entries are roadmap markers, not implemented app paths in v0.4.2.
 
 ## What The Next Agent Should Do First
@@ -74,7 +79,9 @@ Do not claim:
 8. Use `Start` for workspace status, then click `Run Demo` / `Run Demo Pipeline`.
 9. Open the generated listing and confirm the top next-action band, case brief, media preview, baseline-gated pipeline, inline review decision panel, full evidence workspace disclosure, internal review queue counts, and evaluation summary still use evidence-backed review language.
 10. For production-like local testing on port 3000, run `.\scripts\start-local.ps1`; this reads `.env.local` explicitly and avoids stale parent shell API keys.
-11. Record any blocker in a new issue or handoff note instead of silently changing claims.
+11. For deployed verification, use `https://brandarmor.asynchronope.my.id/` or `https://brandarmor.vercel.app/`, confirm `/api/health/demo-readiness` has `demoReady: true`, and open `/listings/seed0000000060`.
+12. Do not use protected Vercel project aliases as judge links; they can show Vercel auth instead of the app.
+13. Record any blocker in a new issue or handoff note instead of silently changing claims.
 
 ## Suggested Next Implementation Priority
 

@@ -23,6 +23,8 @@ BrandArmor v4 is an evidence-first counterfeit risk review system. It does not t
 - `src/domain/`: core types, schemas, scoring, review transitions, imports.
 - `src/domain/investigation.ts`: durable investigation event state and compact context packs for agent-style workflows.
 - `src/persistence/store.ts`: local JSON-file store and demo seed data.
+- `src/persistence/auto-seed.ts`: serverless demo auto-seed guard for empty temp stores, using deterministic seeded IDs.
+- `src/instrumentation.ts`: startup hook that runs the serverless demo seed check before public routes are used.
 - `src/lib/mistral-ocr.ts`: OCR adapter and parsed packaging fields.
 - `src/lib/regulatory-check.ts`: BPOM/NIE and regulatory signal inference.
 - `src/app/api/regulatory/search/route.ts`: direct BPOM cosmetics search endpoint for brand/NIE/product-name queries.
@@ -53,6 +55,10 @@ BrandArmor v4 is an evidence-first counterfeit risk review system. It does not t
 The app writes JSON files under `.brandarmor-data/` by default. Tests use isolated temporary data directories.
 
 When `VERCEL=1` or an AWS Lambda marker is present, relative `BRANDARMOR_DATA_DIR` values are ignored and the app writes under the platform temp directory (`/tmp/.brandarmor-data` on Vercel). This avoids serverless read-only filesystem failures.
+
+Serverless deployments also run `ensureDemoSeeded()` when the temp-backed store is empty. This keeps the public hackathon demo from opening as an empty workspace after an instance recycle. The seed runs in deterministic ID mode, so seeded listing links resolve consistently across Vercel instances instead of intermittently showing `Listing not found`.
+
+`BRANDARMOR_AUTO_SEED=1` forces this behavior for local production-like testing. `BRANDARMOR_AUTO_SEED=0` disables it for any real tenant-like environment.
 
 This is intentional for demo portability. It should be replaced for production because it does not support concurrent writers, tenant isolation, query performance, backups, or audit-grade retention.
 

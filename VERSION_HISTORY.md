@@ -67,6 +67,26 @@ Verification for this checkpoint:
 - `BPOM_DISABLE_API=1 npm test`: `181/181` tests passing.
 - `npm run build`: passing.
 
+## v4.3 Deployed Demo Reliability Pass
+
+PR #1 (`cecadf2`) added serverless demo auto-seeding so empty Vercel `/tmp` stores repopulate before hackathon judges see an empty workspace. PR #2 (`c5059bd`) made seeded demo IDs deterministic so seeded deep links resolve across serverless instances instead of intermittently showing `Listing not found`.
+
+The public judge-safe domains are:
+
+- `https://brandarmor.asynchronope.my.id/`
+- `https://brandarmor.vercel.app/`
+
+The protected Vercel project/preview aliases should not be used as judge links because they can show Vercel authentication instead of the app.
+
+Verification for this checkpoint:
+
+- `npm run typecheck`: passing.
+- `BPOM_DISABLE_API=1 npm test`: `181/181` tests passing.
+- `npm run build`: passing.
+- Public `/api/health/demo-readiness`: `demoReady: true`, 2 brands, 2 products, 7 listings.
+- Public `/api/listings`: stable deterministic seeded IDs, including `seed0000000060`.
+- Public `/listings/seed0000000060`: hydrated listing workspace loads without `Listing not found`.
+
 ## Strategic Learning
 
 The strongest product thesis is not "AI proves counterfeits." The stronger thesis is:

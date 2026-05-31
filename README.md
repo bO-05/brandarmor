@@ -91,6 +91,7 @@ On Vercel the data dir (`/tmp`) is ephemeral and per-instance, so a fresh instan
 - App version: `0.4.2`.
 - Automated tests: `181/181` passing.
 - Build: `npm run build` passes with 21 API routes and 34 generated pages.
+- Public deployed demo verification: `brandarmor.asynchronope.my.id` and `brandarmor.vercel.app` return seeded demo data, stable seeded listing IDs, and working listing detail hydration.
 - Guided demo currently shows OCR/mock for placeholder screenshots, BPOM/real, visual/mock adapter, and judge/real when Anthropic or Mistral is configured.
 - The dashboard, listing workspace, review queue, evaluation page, manual intake, and JSON import now prioritize cold-user guidance, consolidated ambient status, action-first listing review, baseline-gated actions, claim-safe media previews, internal review language, visible queue counts, plain-language pilot evaluation, and claim-safe action labels.
 
@@ -122,12 +123,14 @@ The scoring output is a calibrated routing score, not a legal conclusion. V4 mus
 
 ## Deployment Status
 
-- Live demo: https://brandarmor.asynchronope.my.id/ (mirror: https://brandarmor.vercel.app/)
+- Live demo: https://brandarmor.asynchronope.my.id/
+- Vercel alias: https://brandarmor.vercel.app/
 - GitHub: https://github.com/bO-05/brandarmor
-- Do NOT submit the `*-bo05s-projects.vercel.app` preview URLs publicly; they require Vercel auth and return 401. Use the custom domain.
-- Demo data auto-seeds on serverless cold start with deterministic ids (see "Demo Data Auto-Seed"), so the public demo is never empty and listing deep-links resolve.
 - Last local verification: `npm run typecheck`, `BPOM_DISABLE_API=1 npm test` (`181/181`), `npm run build`, and HTTP smoke checks for `/`, `/demo`, `/listings/new`, `/listings/import`, `/review`, `/evaluation`, and a linked listing detail page.
-- Do not set `BRANDARMOR_DATA_DIR=.brandarmor-data/` in Vercel. The app ignores relative data-dir overrides in serverless mode and writes to the platform temp directory (`/tmp/.brandarmor-data` on Vercel).
+- Last deployed verification: public domains returned `demoReady: true`, 2 brands, 2 products, 7 listings, stable seeded IDs including `seed0000000060`, and hydrated listing detail pages without `Listing not found`.
+- Do not set `BRANDARMOR_DATA_DIR=.brandarmor-data/` in Vercel. The app now ignores relative data-dir overrides in serverless mode and writes to the platform temp directory (`/tmp/.brandarmor-data` on Vercel).
+- Serverless empty stores auto-seed deterministic demo data for hackathon reliability. This is still ephemeral demo storage, not production persistence.
+- Do not send protected Vercel project or preview aliases to judges; use the live demo or Vercel alias above.
 
 ## Quick Vercel Redeploy
 

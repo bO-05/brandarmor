@@ -24,6 +24,12 @@ Minimum local demo mode works without secrets:
 npm run dev
 ```
 
+For serverless demo reliability, `BRANDARMOR_AUTO_SEED` controls empty-store seeding:
+
+- unset: enabled automatically on Vercel/Lambda
+- `1`: force auto-seed, useful for production-like local testing
+- `0`: disable auto-seed for tenant-like environments
+
 The default dev script listens on:
 
 ```text
@@ -107,6 +113,8 @@ Expected result:
 
 - The dashboard explains workspace status, evidence-backed review path, and provider readiness.
 - Demo data is seeded if the local store is empty.
+- On Vercel/serverless, an empty temp-backed store auto-seeds before judges see the app.
+- Seeded demo IDs are deterministic across serverless instances, so seeded listing deep links should not intermittently show `Listing not found`.
 - A candidate listing is selected.
 - OCR artifact is created.
 - Regulatory and visual evidence records are created.
@@ -117,6 +125,31 @@ Expected result:
 - The review queue shows total, pending, and labeled item counts.
 - The evaluation page leads with reviewer workload and useful-review share before technical metrics.
 - Manual listing intake groups related fields on desktop, and JSON import includes a `Load sample JSON` action with `productId` in the sample.
+
+## Verify Deployed Demo
+
+Use the public judge-safe domains:
+
+```text
+https://brandarmor.asynchronope.my.id/
+https://brandarmor.vercel.app/
+```
+
+Minimum deployed smoke:
+
+- `/api/health` returns `status: "ok"` and version `0.4.2`.
+- `/api/health/demo-readiness` returns `demoReady: true`, `dataWritable: true`, 2 brands, 2 products, and 7 listings.
+- `/api/listings` includes stable seeded listing IDs, including `seed0000000060`.
+- `/listings/seed0000000060` renders the listing workspace after hydration and does not show `Listing not found`.
+- `/demo`, `/review`, and `/evaluation` render without auth prompts.
+
+Do not send protected Vercel project or preview aliases to judges. These can return Vercel authentication instead of the app, including:
+
+```text
+https://brandarmor-bo05s-projects.vercel.app/
+https://brandarmor-git-main-bo05s-projects.vercel.app/
+https://brandarmor-pukdcaz2m-bo05s-projects.vercel.app/
+```
 
 ## Reset Local Demo Data
 
@@ -142,6 +175,7 @@ Do not delete source files when resetting demo data.
 - `npm run build` passes.
 - `npx react-doctor@latest --verbose` reports `No issues found` and `100/100`.
 - Hydrated browser smoke checks pass for `/`, `/demo`, `/listings/new`, `/listings/import`, unlinked and linked listing detail pages, `/review`, and `/evaluation` when UI flows are changed. If no browser tool is available, use built-route HTTP smoke checks and clearly state that visual viewport inspection was skipped.
+- Deployed public smoke checks pass on `brandarmor.asynchronope.my.id` or `brandarmor.vercel.app`, including `demoReady: true` and a working seeded listing deep link.
 - `.env.local` is not present in Git.
 - `.brandarmor-data/`, `.next/`, and `node_modules/` are not present in Git.
 - `HANDOFF.md`, `ARCHITECTURE.md`, `RUNBOOK.md`, `KNOWN_LIMITS.md`, and `VERSION_HISTORY.md` are committed.
