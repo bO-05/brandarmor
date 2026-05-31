@@ -1,5 +1,19 @@
 # BrandArmor Memory
 
+## 2026-05-31 - Deployed Demo Reliability
+
+What was decided:
+The hackathon deployment must show the same full-featured seeded demo that local reviewers see. Vercel/serverless empty stores now auto-seed the demo dataset, and seeded IDs are deterministic so public listing deep links resolve across instances.
+
+Why:
+Vercel `/tmp` storage is ephemeral and per-instance. Without auto-seeding, judges could see an empty app. Without deterministic seed IDs, a listing link created on one serverless instance could intermittently fail on another instance with `Listing not found`.
+
+What was rejected:
+Calling `/tmp` persistence production storage, disabling demo seeding for the hackathon deployment, relying on protected Vercel project aliases as judge URLs, or claiming the app automatically proves counterfeits.
+
+Next:
+Use `https://brandarmor.asynchronope.my.id/` or `https://brandarmor.vercel.app/` for judging. Keep `/api/health/demo-readiness`, `/api/listings`, and `/listings/seed0000000060` in deployed smoke checks until production storage replaces JSON persistence.
+
 ## 2026-05-30 - React Doctor Quality Pass
 
 What was decided:

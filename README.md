@@ -79,6 +79,7 @@ Use `GET /api/health/integrations` to see which env-backed integrations are conf
 - App version: `0.4.2`.
 - Automated tests: `181/181` passing.
 - Build: `npm run build` passes with 21 API routes and 34 generated pages.
+- Public deployed demo verification: `brandarmor.asynchronope.my.id` and `brandarmor.vercel.app` return seeded demo data, stable seeded listing IDs, and working listing detail hydration.
 - Guided demo currently shows OCR/mock for placeholder screenshots, BPOM/real, visual/mock adapter, and judge/real when Anthropic or Mistral is configured.
 - The dashboard, listing workspace, review queue, evaluation page, manual intake, and JSON import now prioritize cold-user guidance, consolidated ambient status, action-first listing review, baseline-gated actions, claim-safe media previews, internal review language, visible queue counts, plain-language pilot evaluation, and claim-safe action labels.
 
@@ -109,15 +110,19 @@ The scoring output is a calibrated routing score, not a legal conclusion. V4 mus
 
 ## Deployment Status
 
-- Live demo: https://brandarmor-v4-handoff.vercel.app/
-- GitHub: https://github.com/bO-05/brandarmor-v4-handoff
+- Live demo: https://brandarmor.asynchronope.my.id/
+- Vercel alias: https://brandarmor.vercel.app/
+- GitHub: https://github.com/bO-05/brandarmor
 - Last local verification: `npm run typecheck`, `BPOM_DISABLE_API=1 npm test` (`181/181`), `npm run build`, and HTTP smoke checks for `/`, `/demo`, `/listings/new`, `/listings/import`, `/review`, `/evaluation`, and a linked listing detail page.
+- Last deployed verification: public domains returned `demoReady: true`, 2 brands, 2 products, 7 listings, stable seeded IDs including `seed0000000060`, and hydrated listing detail pages without `Listing not found`.
 - Do not set `BRANDARMOR_DATA_DIR=.brandarmor-data/` in Vercel. The app now ignores relative data-dir overrides in serverless mode and writes to the platform temp directory (`/tmp/.brandarmor-data` on Vercel).
+- Serverless empty stores auto-seed deterministic demo data for hackathon reliability. This is still ephemeral demo storage, not production persistence.
+- Do not send protected Vercel project or preview aliases to judges; use the live demo or Vercel alias above.
 
 ## Quick Vercel Redeploy
 
 If the live site shows stale code:
 1. Go to https://vercel.com/dashboard
-2. Open the brandarmor-v4-handoff project
+2. Open the `brandarmor` project
 3. Deployments tab -> ... menu on latest commit -> "Redeploy"
 4. Or: Settings -> Git -> Connected Git Repository -> ensure auto-deploy is on

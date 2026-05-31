@@ -1,5 +1,12 @@
 # BrandArmor Error Log
 
+## 2026-05-31
+
+- Task: Verify the deployed Vercel demo and hydrated public listing pages.
+- What did not work: The Vercel connector could not inspect the `bo05s-projects` deployment metadata due to a 403 response, and protected Vercel project/preview aliases returned authentication instead of the app. Chrome plugin control was also unavailable in this Windows session because the native host registry entry was missing.
+- What worked instead: Verify the public domains directly with HTTP checks and a real headless Chrome/Playwright session using the installed system Chrome. The public domains `brandarmor.asynchronope.my.id` and `brandarmor.vercel.app` showed seeded data and hydrated listing detail pages.
+- Note for next time: For judge readiness, prioritize public domain smoke checks over protected project aliases. If Chrome plugin control is unavailable, use headless Playwright/system Chrome or Browser against the same public URLs and record any skipped visual inspection.
+
 ## 2026-05-30
 
 - Task: Run `npx react-doctor@latest` in the Codex Windows environment.

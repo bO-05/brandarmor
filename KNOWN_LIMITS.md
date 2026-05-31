@@ -33,6 +33,8 @@ BPOM/NIE search can query `cekbpom.pom.go.id` when the endpoint is reachable. Tr
 
 The default product baselines include real Somethinc and Gloglowing BPOM cosmetics records. The suspect listings and mock OCR screenshots are synthetic demo evidence used to exercise the pipeline and are labeled through mock/real badges in the demo output.
 
+On Vercel/serverless, the demo uses `/tmp` JSON persistence. Empty serverless stores are auto-seeded with deterministic IDs so judges see the same seeded workspace and deep links across instances. This improves demo reliability, but it is still ephemeral demo storage: manually added or changed data can disappear when the serverless instance recycles.
+
 ## Integration Env Limits
 
 `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, and `PERPLEXITY_API_KEY` are used by current app routes. `BROWSER_USE_ENDPOINT` and `HF_API_TOKEN` are intentionally reported as roadmap integrations by `/api/health/integrations`; do not claim Browser-Use or Hugging Face vision is implemented in v0.4.2.
