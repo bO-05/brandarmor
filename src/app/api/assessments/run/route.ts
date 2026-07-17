@@ -5,6 +5,9 @@ import { inferVisualMatch } from "@/lib/visual-compare";
 import { runLlmJudge } from "@/lib/llm-judge";
 import { createEvidence, createLlmJudgeAssessment, createRegulatoryCheck, createScore, createVisualMatch, enrichScoreReasons, getEvidence, getLatestOcrArtifact, getListing, getProduct } from "@/persistence/store";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 45;
+
 export async function POST(request: Request) {
   try {
     const { listingId, forceMockJudge = false } = await request.json();
@@ -21,7 +24,7 @@ export async function POST(request: Request) {
     const judge = await runLlmJudge({ listing, product, score, ocr, evidence: getEvidence(listing.id), regulatory, visual }, forceMockJudge);
     const assessment = createLlmJudgeAssessment({ listingId: listing.id, scoreId: score.id, ...judge });
     return NextResponse.json({ regulatory, visual, score, judge: assessment }, { status: 201 });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "The assessment run could not complete. Retry the case or run individual evidence steps." }, { status: 500 });
   }
 }

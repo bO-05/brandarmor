@@ -19,6 +19,7 @@ import {
   Shield,
 } from "lucide-react";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
+import { IntegrationLedger } from "@/components/IntegrationLedger";
 import { selectAmbientStatus } from "@/lib/ui-ux";
 
 interface DashboardData {
@@ -84,6 +85,8 @@ export default function DashboardPage({ initialData }: { initialData: DashboardD
     currentPath: "/",
   }) : null;
 
+  const secondaryStatusItems = ambientStatus?.items.filter((item) => item.id !== "pending_reviews") ?? [];
+
   const stats = [
     { label: "Baselines", value: data?.brands ?? "-", detail: "brands with product truth", icon: Building2, href: "/brands" },
     { label: "Listings", value: data?.listings ?? "-", detail: "candidate marketplace records", icon: Package, href: "/listings" },
@@ -137,7 +140,7 @@ export default function DashboardPage({ initialData }: { initialData: DashboardD
               </Link>
             ))}
           </div>
-          {ambientStatus && ambientStatus.items.length > 0 && (
+          {ambientStatus && secondaryStatusItems.length > 0 && (
             <div className="mt-5 rounded-md border border-border bg-background p-3">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -149,7 +152,7 @@ export default function DashboardPage({ initialData }: { initialData: DashboardD
                 </Link>
               </div>
               <div className="mt-3 grid gap-2 md:grid-cols-3">
-                {ambientStatus.items.slice(0, 3).map((item) => (
+                {secondaryStatusItems.slice(0, 2).map((item) => (
                   <Link key={item.id} href={item.href} className="rounded-md bg-muted px-3 py-2 text-sm hover:bg-muted/70">
                     <span className="font-semibold">{item.label}</span>
                     <span className="mt-1 block text-xs text-muted-foreground">{item.detail}</span>
@@ -186,7 +189,7 @@ export default function DashboardPage({ initialData }: { initialData: DashboardD
                   </div>
                 ))}
               </div>
-              <Link href="/demo" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
+              <Link href="/demo" className="pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
                 <PlayCircle className="size-4" />
                 Run Guided Demo
                 <ArrowRight className="size-4" />
@@ -274,6 +277,8 @@ export default function DashboardPage({ initialData }: { initialData: DashboardD
           </div>
         </section>
       )}
+
+      <IntegrationLedger />
 
       <details className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
         <summary className="cursor-pointer text-sm font-semibold">Local demo command</summary>

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { queryBpomCosmetics } from "@/lib/bpom-verify";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 function normalizeLength(value: string | null): number {
   const parsed = Number.parseInt(value ?? "", 10);

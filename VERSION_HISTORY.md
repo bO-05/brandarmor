@@ -87,6 +87,24 @@ Verification for this checkpoint:
 - Public `/api/listings`: stable deterministic seeded IDs, including `seed0000000060`.
 - Public `/listings/seed0000000060`: hydrated listing workspace loads without `Listing not found`.
 
+## v0.5.0 — Evidence-Ready Demo And Review Handoff
+
+v0.5.0 turns the strongest demo path into a staged, claim-safe workflow. The guided demo now persists OCR, BPOM/NIE, visual, and deterministic scoring evidence before it calls the evidence judge; the UI shows the active stage, elapsed time, and a safe retry message instead of one opaque spinner. OCR, judge, discovery, regulatory, visual, and assessment routes now declare bounded durations and compact provider failures into labeled fallbacks.
+
+The listing workspace now exposes a projected Investigation Trail built from stored artifacts. It shows ordered evidence steps, missing evidence, suggested next actions, and claim limits; the exact same projection feeds new JSON and PDF evidence reports. Both exports include provenance, score reasons, judge citations, review state, and the explicit not-a-legal-determination disclaimer.
+
+This release fixes the dashboard/evaluation count contradiction by making the pilot fixture count authoritative across the dashboard and status route, fixes the Brands timezone hydration risk with Jakarta-time formatting, and fixes New Listing control labeling. Frontend work follows the Emil Kowalski design-engineering audit: restrained press feedback, reduced-motion handling, fine-pointer hover gating, a compact mobile workflow trail, non-clipped mobile navigation, and an integration provenance ledger. The visual pillar now shows a roadmap/not-run state when a real reference pair does not exist.
+
+Verification for this checkpoint:
+
+- `npm run typecheck`: passing.
+- `BPOM_DISABLE_API=1 npm test`: `188/188` tests passing.
+- `npm run build`: passing.
+- React Doctor v0.7.8: `No issues found`, `100/100` from the repository root.
+- Five local staged demo runs completed with JSON and PDF report output; all were under 1.4 seconds using the intentionally labeled mock provider path.
+
+The branch is a release candidate only. No merge, deployment, external report, marketplace submission, or enforcement action occurred.
+
 ## Strategic Learning
 
 The strongest product thesis is not "AI proves counterfeits." The stronger thesis is:

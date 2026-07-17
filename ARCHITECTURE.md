@@ -1,8 +1,8 @@
-# BrandArmor v4 Architecture
+# BrandArmor v0.5.0 Architecture
 
 ## Product Shape
 
-BrandArmor v4 is an evidence-first counterfeit risk review system. It does not try to prove counterfeiting automatically. It collects listing evidence, extracts signals, scores risk, asks a judge model to reason over cited evidence, and routes suspicious cases to human review.
+BrandArmor v0.5.0 is an evidence-first counterfeit risk review system. It does not try to prove counterfeiting automatically. It collects listing evidence, extracts signals, scores risk, asks a judge model to reason over cited evidence, and routes suspicious cases to human review.
 
 ## Tech Stack
 
@@ -24,12 +24,15 @@ BrandArmor v4 is an evidence-first counterfeit risk review system. It does not t
 - `src/domain/investigation.ts`: durable investigation event state and compact context packs for agent-style workflows.
 - `src/persistence/store.ts`: local JSON-file store and demo seed data.
 - `src/persistence/auto-seed.ts`: serverless demo auto-seed guard for empty temp stores, using deterministic seeded IDs.
-- `src/instrumentation.ts`: startup hook that runs the serverless demo seed check before public routes are used.
+- `src/instrumentation.ts`: runtime-safe instrumentation entrypoint. Node-only demo seeding stays in the dashboard and demo routes so development and edge compilation remain safe.
 - `src/lib/mistral-ocr.ts`: OCR adapter and parsed packaging fields.
 - `src/lib/regulatory-check.ts`: BPOM/NIE and regulatory signal inference.
 - `src/app/api/regulatory/search/route.ts`: direct BPOM cosmetics search endpoint for brand/NIE/product-name queries.
-- `src/lib/visual-compare.ts`: visual similarity adapter placeholder.
-- `src/lib/llm-judge.ts`: evidence judge adapter; Anthropic uses forced tool-use structured output, then falls back to Mistral, then mock.
+- `src/lib/visual-compare.ts`: visual similarity adapter placeholder. When no inspectable pair exists, the UI reports a clear roadmap state rather than a broken-looking blank badge.
+- `src/lib/llm-judge.ts`: evidence judge adapter; Anthropic uses forced tool-use structured output, then falls back to Mistral, then an explicit mock assessment.
+- `src/lib/provider-safety.ts`: bounded provider fetches and short safe failure messages for OCR, judge, discovery, and regulatory flows.
+- `src/lib/investigation-trail.ts`: deterministic projection from stored artifacts into investigation events, missing evidence, next actions, and claim limits.
+- `src/lib/case-report.ts` and `src/lib/case-report-pdf.tsx`: one typed report model shared by JSON and PDF evidence exports.
 - `src/lib/demo-signals.ts`: mock/real provenance labels for one-click demo output.
 - `src/lib/discovery-defaults.ts`: Gloglowing marketplace watch query defaults for candidate discovery.
 - `src/lib/env.ts`: trims and normalizes env values so quoted `.env.local` values do not break provider calls.
@@ -48,7 +51,8 @@ BrandArmor v4 is an evidence-first counterfeit risk review system. It does not t
 7. Compute deterministic risk score with traceable rule reasons.
 8. Run the LLM evidence judge over the listing, product, score, OCR, and evidence.
 9. Create or update a human review decision.
-10. Show evaluation metrics from labeled fixtures.
+10. Project the stored artifacts into an investigation trail and export the case as JSON or PDF for human review.
+11. Show evaluation metrics from labeled fixtures.
 
 ## Persistence
 
@@ -83,6 +87,7 @@ The rule for any LLM-facing workflow is:
 External services must be optional or fail clearly:
 
 - Missing OCR key should not silently pretend to be real OCR for non-demo paths.
+- OCR, judge, discovery, and regulatory calls use bounded requests and return short safe fallback states instead of hanging or exposing provider internals.
 - Missing or invalid Anthropic judge credentials fall back to Mistral when configured, then to a mock judge only when the UI/report makes that clear.
 - Anthropic judge output uses forced tool use; malformed text output still degrades to deterministic evidence fallback instead of a 500.
 - BPOM API results should be labeled as real adapter hits; manual/linkout results should remain labeled as non-API evidence.

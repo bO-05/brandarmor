@@ -14,9 +14,9 @@ import {
 
 function toneClass(tone: ReturnType<typeof getReviewStatusPresentation>["tone"]): string {
   switch (tone) {
-    case "danger": return "bg-destructive text-destructive-foreground";
-    case "success": return "bg-success text-white";
-    case "warning": return "bg-warning text-white";
+    case "danger": return "border border-destructive/40 bg-destructive/10 text-destructive";
+    case "success": return "border border-success/40 bg-success/10 text-success";
+    case "warning": return "border border-warning/40 bg-warning/10 text-warning";
     default: return "bg-secondary text-secondary-foreground";
   }
 }
@@ -171,7 +171,7 @@ export function ReviewDecisionPanel({
             </div>
             <button type="button"
               onClick={() => dispatch({ type: "set_pending", status: suggestedStatus })}
-              className={`inline-flex min-h-9 items-center justify-center rounded-md px-3 py-2 text-xs font-semibold ${toneClass(suggestedPresentation.tone)}`}
+              className={`pressable inline-flex min-h-9 items-center justify-center rounded-md px-3 py-2 text-xs font-semibold ${toneClass(suggestedPresentation.tone)}`}
             >
               Confirm suggested label
             </button>

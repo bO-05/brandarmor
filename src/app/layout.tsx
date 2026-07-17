@@ -10,7 +10,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "BrandArmor v4 - Evidence Review",
+  title: "BrandArmor v0.5.0 - Evidence Review",
   description: "Evidence-backed suspicious listing review app",
   applicationName: "BrandArmor",
   manifest: "/manifest.webmanifest",

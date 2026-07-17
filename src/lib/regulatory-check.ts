@@ -1,5 +1,6 @@
 import type { Listing, OcrArtifact, Product, RegulatoryCheck } from "@/domain/types";
 import { verifyBpomNie } from "@/lib/bpom-verify";
+import { providerFailure } from "@/lib/provider-safety";
 
 export function buildBpomSearchUrl(query: string | null): string {
   const q = encodeURIComponent(query ?? "");
@@ -70,10 +71,11 @@ export async function enrichRegulatoryCheckWithBpomApi(
       bpomLookupDurationMs: verdict.durationMs,
       bpomStatus: verdict.bpomStatus,
     };
-  } catch (e) {
+  } catch (error) {
+    const failure = providerFailure(error, "BPOM lookup");
     return {
       ...base,
-      notes: `BPOM API lookup failed: ${(e as Error).message}. Falling back to manual link-out.`,
+      notes: `${failure.safeMessage} Falling back to official manual link-out.`,
     };
   }
 }

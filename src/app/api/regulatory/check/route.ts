@@ -4,6 +4,9 @@ import { computeScore } from "@/domain/scoring";
 import { enrichRegulatoryCheckWithBpomApi, inferRegulatoryCheck } from "@/lib/regulatory-check";
 import { createEvidence, createRegulatoryCheck, createScore, enrichScoreReasons, getLatestOcrArtifact, getLatestVisualMatch, getListing, getProduct } from "@/persistence/store";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const listingId = searchParams.get("listingId");
@@ -45,7 +48,7 @@ export async function POST(request: Request) {
     }
     const score = product ? createScore({ ...enrichScoreReasons(computeScore(listing, product, artifact, record, getLatestVisualMatch(listing.id)), listing.id), listingId: listing.id }) : null;
     return NextResponse.json({ regulatoryCheck: record, score }, { status: 201 });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "The BPOM/NIE check could not complete. A manual official-source link-out remains available." }, { status: 500 });
   }
 }

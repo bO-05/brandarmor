@@ -21,7 +21,7 @@ const BPOM_INIT_URL = `${BPOM_BASE}/produk-kosmetika`;
 const BPOM_DT_URL = `${BPOM_BASE}/produk-dt/12`; // 12 = kosmetika class
 const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (compatible; BrandArmor/0.4; +https://brandarmor.id)";
-const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_TIMEOUT_MS = 7_000;
 
 export interface BpomProduct {
   productRegister: string; // NIE
@@ -237,13 +237,13 @@ export async function queryBpomCosmetics(
       error: null,
       durationMs: Date.now() - start,
     };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
       recordsTotal: 0,
       recordsFiltered: 0,
       products: [],
-      error: (e as Error).message,
+      error: "BPOM query could not complete. Retry the check or use the official manual link-out.",
       durationMs: Date.now() - start,
     };
   }

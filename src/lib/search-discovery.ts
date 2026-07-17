@@ -1,4 +1,5 @@
 import { envValue } from "@/lib/env";
+import { fetchWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
 
 const MARKETPLACE_PATTERNS = [
   { name: "shopee", pattern: /shopee/i },
@@ -21,28 +22,33 @@ export async function discoverCandidates(query: string): Promise<DiscoveryCandid
   const apiKey = envValue("PERPLEXITY_API_KEY");
   if (!apiKey) return mockCandidates(query);
 
-  const response = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "sonar",
-      messages: [
-        {
-          role: "system",
-          content: "Find public web candidate listings related to counterfeit or suspicious marketplace products. Return compact JSON only.",
-        },
-        {
-          role: "user",
-          content: `Find up to 5 public candidate listing URLs for: ${query}. Return JSON array with title,url,snippet,marketplace.`,
-        },
-      ],
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetchWithProviderTimeout("Perplexity discovery", "https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "sonar",
+        messages: [
+          {
+            role: "system",
+            content: "Find public web candidate listings related to counterfeit or suspicious marketplace products. Return compact JSON only.",
+          },
+          {
+            role: "user",
+            content: `Find up to 5 public candidate listing URLs for: ${query}. Return JSON array with title,url,snippet,marketplace.`,
+          },
+        ],
+      }),
+    }, 10_000);
+  } catch (error) {
+    return mockCandidates(query, providerFailure(error, "Perplexity discovery").safeMessage);
+  }
   const raw = await response.json().catch(() => null);
-  if (!response.ok) return mockCandidates(query, raw?.error?.message ?? `Perplexity HTTP ${response.status}`);
+  if (!response.ok) return mockCandidates(query, "Perplexity discovery is unavailable; showing clearly labeled demo candidates.");
   const content = raw?.choices?.[0]?.message?.content ?? "[]";
   try {
     const parsed = JSON.parse(content.replace(/^```json\s*/i, "").replace(/```$/i, ""));

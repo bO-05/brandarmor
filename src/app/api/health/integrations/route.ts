@@ -15,7 +15,7 @@ const roadmapIntegrations = {
     implemented: false,
     mode: "roadmap",
     provider: "browser-use",
-    notes: "Configured in env for future user-guided capture, but this v0.4.2 app does not call it yet.",
+    notes: "Configured in env for future user-guided capture, but this v0.5.0 app does not call it yet.",
   },
   huggingFaceVision: {
     implemented: false,

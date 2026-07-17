@@ -1,4 +1,4 @@
-# BrandArmor v4 Handoff
+# BrandArmor v0.5.0 Handoff
 
 ## Read This First
 
@@ -21,7 +21,7 @@ Start here:
 
 ## Honest Current State
 
-BrandArmor v4 is a demo-grade evidence-first suspicious listing review app for marketplace listings. It is more advanced than the previous workspace versions because it includes a guided cold-user dashboard path, a listing evidence workspace, evidence records, deterministic scoring, OCR artifacts, regulatory/BPOM-NIE signals, visual-match placeholders, structured LLM evidence judge output, internal human review decisions, and evaluation metrics.
+BrandArmor v0.5.0 is a demo-grade evidence-first suspicious listing review app for marketplace listings. It includes a guided cold-user dashboard path, a staged evidence demo, a listing evidence workspace, evidence records, deterministic scoring, OCR artifacts, regulatory/BPOM-NIE signals, explicit visual roadmap states, structured LLM evidence judge output, internal human review decisions, projected investigation trails, JSON/PDF evidence reports, and evaluation metrics.
 
 The current deployed demo is no longer supposed to open as an empty workspace on public Vercel domains. Serverless temp stores auto-seed the demo dataset when empty, and the seeded IDs are deterministic so deep links resolve across instances.
 
@@ -53,7 +53,7 @@ Do not claim:
 - Route pages use server `page.tsx` wrappers for metadata and colocated `page-client.tsx` files for interactive UI where needed.
 - React Doctor v0.2.14 reports `No issues found` and `100/100` in the current local verification.
 - Evaluation metrics and test coverage.
-- `181/181` automated tests passing in the current local verification.
+- `188/188` automated tests passing in the v0.5.0 local verification, plus a successful JSON/PDF report route test and five local staged-demo/report runs.
 - Real BPOM-backed Somethinc and Gloglowing product baselines in demo seed data.
 - Vercel/serverless demo auto-seeding for empty `/tmp` stores.
 - Deterministic seeded demo IDs, including stable listing deep links such as `/listings/seed0000000060`.
@@ -65,7 +65,7 @@ Do not claim:
 - Discovery is candidate lead generation, not authoritative marketplace crawling.
 - Local JSON persistence is demo-safe, not multi-user production storage.
 - Vercel/serverless `/tmp` persistence is auto-seeded for demo reliability, but remains ephemeral and not production storage.
-- Browser-Use and Hugging Face env entries are roadmap markers, not implemented app paths in v0.4.2.
+- Browser-Use and Hugging Face env entries are roadmap markers, not implemented app paths in v0.5.0.
 
 ## What The Next Agent Should Do First
 
@@ -77,7 +77,7 @@ Do not claim:
 6. Start with `npm run dev`.
 7. Open `http://localhost:3015/`.
 8. Use `Start` for workspace status, then click `Run Demo` / `Run Demo Pipeline`.
-9. Open the generated listing and confirm the top next-action band, case brief, media preview, baseline-gated pipeline, inline review decision panel, full evidence workspace disclosure, internal review queue counts, and evaluation summary still use evidence-backed review language.
+9. Open the generated listing and confirm the top next-action band, case brief, PDF/JSON report controls, investigation trail, media preview, baseline-gated pipeline, inline review decision panel, full evidence workspace disclosure, internal review queue counts, and evaluation summary still use evidence-backed review language.
 10. For production-like local testing on port 3000, run `.\scripts\start-local.ps1`; this reads `.env.local` explicitly and avoids stale parent shell API keys.
 11. For deployed verification, use `https://brandarmor.asynchronope.my.id/` or `https://brandarmor.vercel.app/`, confirm `/api/health/demo-readiness` has `demoReady: true`, and open `/listings/seed0000000060`.
 12. Do not use protected Vercel project aliases as judge links; they can show Vercel auth instead of the app.
@@ -85,9 +85,9 @@ Do not claim:
 
 ## Suggested Next Implementation Priority
 
-1. Stabilize one strong demo scenario with clean data.
-2. Add evidence report export.
-3. Replace JSON persistence with Postgres or a similarly durable store.
-4. Add auth and tenant isolation.
-5. Add real image similarity only after reference images and labels exist.
-6. Build a small labeled dataset and show threshold behavior honestly.
+1. Review and deploy v0.5.0 only after the pull request is approved; repeat public smoke checks after deployment.
+2. Collect a rights-cleared, externally reachable flagship image before enabling real OCR for the recorded demo.
+3. Add provenance-documented harder evaluation cases only after the source records and labels are reviewable; do not fabricate cases to reach a numeric target.
+4. Replace JSON persistence with Postgres or a similarly durable store.
+5. Add auth and tenant isolation.
+6. Add real image similarity only after official reference images and a labeled visual dataset exist.

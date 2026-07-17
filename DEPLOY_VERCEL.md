@@ -1,4 +1,4 @@
-# Deploy BrandArmor v4 To Vercel
+# Deploy BrandArmor v0.5.0 To Vercel
 
 ## Prerequisites
 
@@ -100,7 +100,7 @@ Do not submit protected project or preview aliases that return Vercel authentica
 | Anthropic key works in console but app uses another key | Check for a stale parent environment variable. Locally use `scripts/start-local.ps1`, which reads `.env.local` explicitly. |
 | OCR stays mock in one-click demo | Expected for placeholder `example.com` screenshots. Use a publicly fetchable image URL through `/api/ocr` for real OCR. |
 | BPOM lookup times out | Retry; public endpoints can be slow. For offline testing only, set `BPOM_DISABLE_API=1`. |
-| Browser-Use or Hugging Face shown as roadmap | Correct for v0.4.2; env presence does not mean those integrations are implemented. |
+| Browser-Use or Hugging Face shown as roadmap | Correct for v0.5.0; env presence does not mean those integrations are implemented. |
 
 ## After Deployment
 
@@ -113,3 +113,4 @@ Record:
 - `/api/health/demo-readiness` response with `demoReady: true`.
 - `/api/listings` response showing stable seeded IDs.
 - One successful `/api/demo/run` response showing mock/real signals.
+response showing mock/real signals.

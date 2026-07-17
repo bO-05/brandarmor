@@ -1,5 +1,12 @@
 # BrandArmor Error Log
 
+## 2026-07-17
+
+- Task: Start the v0.5.0 local Next dev server for smoke verification.
+- What did not work: `src/instrumentation.ts` dynamically imported Node-only JSON persistence. Next development mode still compiled that import for an edge-compatible instrumentation target, producing `Module not found: Can't resolve 'fs'` and HTTP 500 responses from local routes. Adding a runtime export and moving the import into a sibling module did not prevent the dev compiler from tracing it.
+- What worked instead: Keep instrumentation runtime-safe and move deterministic demo seeding responsibility to the dashboard page and guided demo route, which already run in the Node request path. Local `/api/health`, dashboard, staged demo, and report routes then returned successfully.
+- Note for next time: Do not import Node-only persistence from instrumentation unless the Next runtime packaging behavior is verified in both dev and production. Keep request-entry seeding explicit and test a fresh local dev server after changing instrumentation.
+
 ## 2026-05-31
 
 - Task: Verify the deployed Vercel demo and hydrated public listing pages.

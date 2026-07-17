@@ -61,14 +61,14 @@ export function Sidebar() {
       <div className="p-4 border-b border-border md:p-5">
         <div className="flex items-center gap-2">
           <Image src="/brandarmor-icons/icon-color-transparent.svg" alt="" width={24} height={24} className="size-6 shrink-0" />
-          <span className="font-bold text-lg">BrandArmor v4</span>
+          <span className="font-bold text-lg">BrandArmor</span>
         </div>
       </div>
-      <nav className="grid max-w-full gap-3 overflow-x-auto p-3 md:block md:flex-1 md:overflow-visible">
+      <nav aria-label="Primary navigation" className="grid max-w-full gap-3 p-3 md:block md:flex-1 md:overflow-visible">
         {groups.map((group) => {
           const groupActive = group.items.some((item) => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)));
           const content = (
-            <div className="grid min-w-max grid-flow-col auto-cols-max gap-2 md:mt-2 md:block md:min-w-0">
+            <div className="grid grid-cols-2 gap-2 md:mt-2 md:block">
               {group.items.map(({ href, label, badge, badgeTone }) => {
                 const Icon = iconByHref[href as keyof typeof iconByHref] ?? Shield;
                 const active = pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -82,7 +82,7 @@ export function Sidebar() {
                   <Link
                     key={href}
                     href={href}
-                    className={`mb-1 flex min-h-10 items-center gap-2 whitespace-nowrap rounded-md px-3 py-2.5 text-sm transition-colors md:gap-3 ${
+                    className={`flex min-h-10 items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors md:mb-1 md:gap-3 md:whitespace-nowrap ${
                       active ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                     }`}
                   >
@@ -119,7 +119,7 @@ export function Sidebar() {
         })}
       </nav>
       <div className="hidden p-3 border-t border-border text-xs text-muted-foreground md:block">
-        v0.4.2 - Vultur
+        v0.5.0 • Evidence review
       </div>
     </aside>
   );

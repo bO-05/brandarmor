@@ -13,6 +13,7 @@ import {
   CircleDashed,
   ClipboardCheck,
   Eye,
+  FileDown,
   Gauge,
   Loader2,
   ScanText,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { BaselineExplainer } from "@/components/BaselineExplainer";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
+import { InvestigationTrail } from "@/components/InvestigationTrail";
 import { ListingMediaPanel } from "@/components/ListingMediaPanel";
 import { ReviewDecisionPanel } from "@/components/ReviewDecisionPanel";
 import { TermHelp } from "@/components/TermHelp";
@@ -36,6 +38,7 @@ import type {
   VisualMatchEvidence,
 } from "@/domain/types";
 import { buildListingCaseBrief, buildListingWorkflow, buildMediaPreview, getListingNextAction, getListingPrimaryAction, getListingSourceTypeLabel, getPilotLabelPresentation, getRecommendedActionPresentation, getReviewStatusPresentation, type ListingWorkflowStepId, type OperationState } from "@/lib/ui-ux";
+import { buildInvestigationTrail } from "@/lib/investigation-trail";
 import { formatCurrency, getScoreColor } from "@/lib/utils";
 
 type StepResponse<T = unknown> = T & { error?: string; artifact?: { error?: string } | null; judge?: { error?: string } | null };
@@ -580,7 +583,7 @@ function RequiredActionSection({
       )}
 
       {message && (
-        <div className={`mt-4 rounded-md border px-3 py-2 text-sm ${failedStep ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border bg-muted text-muted-foreground"}`}>
+        <div role="status" aria-live="polite" className={`mt-4 rounded-md border px-3 py-2 text-sm ${failedStep ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border bg-muted text-muted-foreground"}`}>
           {message}
         </div>
       )}
@@ -646,6 +649,30 @@ function CaseBriefSection({
       </div>
 
       <ListingMediaPanel preview={mediaPreview} />
+    </section>
+  );
+}
+
+function EvidenceReportDownloads({ listingId }: { listingId: string }) {
+  const baseHref = `/api/listings/${listingId}/report`;
+
+  return (
+    <section className="surface-card mb-5 rounded-lg p-5" aria-labelledby="evidence-report-title">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">Evidence report</p>
+          <h2 id="evidence-report-title" className="mt-1 text-lg font-bold">Export a review-ready case file</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Includes evidence IDs, provider provenance, score reasons, investigation trail, missing evidence, review state, and claim limits. It is for human review, not a legal determination.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a href={`${baseHref}?format=pdf`} className="pressable inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+            <FileDown className="size-4" /> Download PDF
+          </a>
+          <a href={`${baseHref}?format=json`} className="pressable inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground">
+            <FileDown className="size-4" /> Download JSON
+          </a>
+        </div>
+      </div>
     </section>
   );
 }
@@ -716,8 +743,20 @@ export default function ListingDetailPage() {
     evidenceCount: evidence.length,
     regulatoryStatus: regulatory[0]?.status ?? null,
     visualStatus: visual[0]?.status ?? null,
+    visualProvider: visual[0]?.provider ?? null,
     judge: judge[0] ?? null,
   }), [evidence.length, judge, listing?.productId, regulatory, score, visual]);
+  const investigationTrail = useMemo(() => listing ? buildInvestigationTrail({
+    listing,
+    product: linkedProduct,
+    evidence,
+    ocr: ocr[0] ?? null,
+    regulatory: regulatory[0] ?? null,
+    visual: visual[0] ?? null,
+    score,
+    judge: judge[0] ?? null,
+    review,
+  }) : null, [evidence, judge, linkedProduct, listing, ocr, regulatory, review, score, visual]);
   const primaryAction = useMemo(() => getListingPrimaryAction({
     hasProductBaseline: Boolean(listing?.productId),
     loading,
@@ -854,6 +893,10 @@ export default function ListingDetailPage() {
       <NextActionBanner nextAction={nextAction} primaryAction={primaryAction} loading={loading} runRecommendedPipeline={runRecommendedPipeline} />
 
       <CaseBriefSection caseBrief={caseBrief} mediaPreview={mediaPreview} />
+
+      <EvidenceReportDownloads listingId={listing.id} />
+
+      {investigationTrail && <InvestigationTrail trail={investigationTrail} />}
 
       {review && (
         <ReviewDecisionPanel

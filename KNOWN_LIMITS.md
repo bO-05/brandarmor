@@ -3,6 +3,7 @@
 ## Current Limits
 
 - Not production-ready.
+- Evidence-report downloads are generated on demand and are not retained in object storage or an audit-grade report archive.
 - No authentication.
 - No tenant isolation.
 - No production database.
@@ -19,11 +20,11 @@ Real OCR depends on `MISTRAL_API_KEY` and a public image URL that Mistral can fe
 
 ## LLM Judge Limits
 
-The LLM judge is a reasoning helper over cited evidence. It must not be treated as a final authority. Anthropic uses structured tool output and falls back to Mistral, then mock, but all judge outputs remain advisory. When evidence is weak, the correct behavior is to say evidence is insufficient.
+The LLM judge is a reasoning helper over cited evidence. It must not be treated as a final authority. Anthropic uses structured tool output and falls back to Mistral, then mock, but all judge outputs remain advisory. When evidence is weak, the correct behavior is to say evidence is insufficient. Provider calls are bounded so the app can preserve the available core evidence and show a labeled fallback rather than wait indefinitely.
 
 ## Visual Similarity Limits
 
-The current visual-match path is an adapter/mock evidence shape. It is not yet a production SigLIP, DINOv2, CLIP, or embedding-backed image retrieval system.
+The current visual-match path is an adapter/mock evidence shape. When the flagship demo has no inspectable suspect/reference image pair, BrandArmor labels it as roadmap/not run rather than displaying a fake score or a bare broken state. It is not yet a production SigLIP, DINOv2, CLIP, or embedding-backed image retrieval system.
 
 ## BPOM Limits
 
@@ -37,7 +38,7 @@ On Vercel/serverless, the demo uses `/tmp` JSON persistence. Empty serverless st
 
 ## Integration Env Limits
 
-`MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, and `PERPLEXITY_API_KEY` are used by current app routes. `BROWSER_USE_ENDPOINT` and `HF_API_TOKEN` are intentionally reported as roadmap integrations by `/api/health/integrations`; do not claim Browser-Use or Hugging Face vision is implemented in v0.4.2.
+`MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, and `PERPLEXITY_API_KEY` are used by current app routes. `BROWSER_USE_ENDPOINT` and `HF_API_TOKEN` are intentionally reported as roadmap integrations by `/api/health/integrations`; do not claim Browser-Use or Hugging Face vision is implemented in v0.5.0.
 
 Local shells can contain stale provider keys that override `.env.local`. Use `scripts/start-local.ps1` for production-like local runs because it explicitly reloads `.env.local`.
 
@@ -47,7 +48,7 @@ Discovery output is a candidate lead source. It is not guaranteed to represent c
 
 ## Accuracy Limits
 
-The app can show metrics on the current 50-case pilot fixture, but the dataset is too small for production-grade accuracy claims. Present dataset size clearly and expand toward n=200 before claiming operational precision/recall targets.
+The app can show metrics on the current 50-case pilot fixture, but the dataset is too small for production-grade accuracy claims. The dashboard and evaluation route now use that same authoritative fixture count instead of per-instance JSON state. Present dataset size clearly and expand toward n=200 only with provenance-documented labels before claiming operational precision/recall targets.
 
 ## Correct Claim Discipline
 

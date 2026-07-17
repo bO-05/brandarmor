@@ -1,5 +1,6 @@
 import type { OcrArtifact, ParsedPackagingFields } from "@/domain/types";
 import { envValue } from "@/lib/env";
+import { fetchWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
 
 const FALLBACK_MODEL = "mistral-ocr-latest";
 
@@ -160,22 +161,41 @@ export async function processMistralOcr(input: OcrProcessInput): Promise<OcrProc
     };
   }
 
-  const response = await fetch("https://api.mistral.ai/v1/ocr", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      document: {
-        type: "image_url",
-        image_url: input.imageUrl,
+  let response: Response;
+  try {
+    response = await fetchWithProviderTimeout("Mistral OCR", "https://api.mistral.ai/v1/ocr", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-      include_image_base64: false,
-      confidence_scores_granularity: "page",
-    }),
-  });
+      body: JSON.stringify({
+        model,
+        document: {
+          type: "image_url",
+          image_url: input.imageUrl,
+        },
+        include_image_base64: false,
+        confidence_scores_granularity: "page",
+      }),
+    }, 12_000);
+  } catch (error) {
+    const failure = providerFailure(error, "Mistral OCR");
+    return {
+      provider: "mistral",
+      model,
+      status: "failed",
+      sourceImageUrl: input.imageUrl,
+      markdown: "",
+      rawJson: { failure },
+      averageConfidence: null,
+      suspiciousTermCount: 0,
+      extractedFields: {},
+      parsedFields: parseCosmeticsPackagingFields(""),
+      usageInfo: null,
+      error: failure.safeMessage,
+    };
+  }
 
   const raw = await response.json().catch(() => null);
   if (!response.ok) {
@@ -185,13 +205,13 @@ export async function processMistralOcr(input: OcrProcessInput): Promise<OcrProc
       status: "failed",
       sourceImageUrl: input.imageUrl,
       markdown: "",
-      rawJson: raw,
+      rawJson: { providerStatus: response.status },
       averageConfidence: null,
       suspiciousTermCount: 0,
       extractedFields: {},
       parsedFields: parseCosmeticsPackagingFields(""),
-      usageInfo: raw?.usage_info ?? null,
-      error: raw?.message ?? raw?.error?.message ?? `Mistral OCR failed with HTTP ${response.status}`,
+      usageInfo: null,
+      error: "Mistral OCR is unavailable for this image. The case can continue with clearly labeled missing OCR evidence.",
     };
   }
 

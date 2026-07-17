@@ -247,6 +247,22 @@ export function clearOcrEvidenceForListing(listingId: string): void {
   if (filtered.length !== all.length) writeJson("evidence", filtered);
 }
 
+export function clearGeneratedEvidenceForListing(listingId: string): void {
+  const generatedFields = new Set([
+    "ocr_markdown",
+    "ocr_bpom_nie",
+    "ocr_volume_or_size",
+    "ocr_ingredients",
+    "ocr_claims",
+    "ocr_suspicious_terms",
+    "regulatory_status",
+    "visual_similarity",
+  ]);
+  const all = readJson<Evidence>("evidence");
+  const filtered = all.filter((e) => e.listingId !== listingId || !generatedFields.has(e.fieldName));
+  if (filtered.length !== all.length) writeJson("evidence", filtered);
+}
+
 // --- Regulatory Check Operations ---
 export function getRegulatoryChecks(listingId?: string): RegulatoryCheck[] {
   const all = readJson<RegulatoryCheck>("regulatory_checks").sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -291,6 +307,12 @@ export function getLlmJudgeAssessments(listingId?: string): LlmJudgeAssessment[]
 
 export function getLatestLlmJudgeAssessment(listingId: string): LlmJudgeAssessment | undefined {
   return getLlmJudgeAssessments(listingId)[0];
+}
+
+export function clearLlmJudgeAssessmentsForListing(listingId: string): void {
+  const all = readJson<LlmJudgeAssessment>("llm_judge_assessments");
+  const filtered = all.filter((assessment) => assessment.listingId !== listingId);
+  if (filtered.length !== all.length) writeJson("llm_judge_assessments", filtered);
 }
 
 export function createLlmJudgeAssessment(data: Omit<LlmJudgeAssessment, "id" | "createdAt">): LlmJudgeAssessment {

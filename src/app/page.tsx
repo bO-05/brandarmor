@@ -1,7 +1,8 @@
 import DashboardPage from "./page-client";
 import { hasEnvValue } from "@/lib/env";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
-import { getBrands, getEvaluationCases, getListings, getProducts, getReviewDecisions, getScores, isDataDirWritable } from "@/persistence/store";
+import { getBrands, getListings, getProducts, getReviewDecisions, getScores, isDataDirWritable } from "@/persistence/store";
+import { getEvaluationFixtureCount } from "@/evaluation/dataset";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default function Page() {
         pendingReviews: reviews.filter((review) => review.status === "pending").length,
         highRisk: scores.filter((score) => score.riskLevel === "high" || score.riskLevel === "critical").length,
         reviewDecisions: reviews.length,
-        evaluationCases: getEvaluationCases().length,
+        evaluationCases: getEvaluationFixtureCount(),
         readiness: {
           mistralConfigured: hasEnvValue("MISTRAL_API_KEY"),
           anthropicConfigured: hasEnvValue("ANTHROPIC_API_KEY"),

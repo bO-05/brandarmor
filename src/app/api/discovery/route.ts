@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { discoverCandidates } from "@/lib/search-discovery";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -8,7 +11,7 @@ export async function POST(request: Request) {
     if (!query) return NextResponse.json({ error: "query is required" }, { status: 400 });
     const candidates = await discoverCandidates(query);
     return NextResponse.json({ candidates });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Candidate discovery could not complete. Retry the query; any demo results are labeled as such." }, { status: 500 });
   }
 }
