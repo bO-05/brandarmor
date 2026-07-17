@@ -75,6 +75,8 @@ export async function enrichRegulatoryCheckWithBpomApi(
     const failure = providerFailure(error, "BPOM lookup");
     return {
       ...base,
+      provider: "bpom_linkout",
+      status: "needs_manual_check",
       notes: `${failure.safeMessage} Falling back to official manual link-out.`,
     };
   }

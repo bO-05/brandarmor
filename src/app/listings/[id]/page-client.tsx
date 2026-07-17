@@ -583,7 +583,11 @@ function RequiredActionSection({
       )}
 
       {message && (
-        <div role="status" aria-live="polite" className={`mt-4 rounded-md border px-3 py-2 text-sm ${failedStep ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border bg-muted text-muted-foreground"}`}>
+        <div
+          role={failedStep ? "alert" : "status"}
+          aria-live={failedStep ? "assertive" : "polite"}
+          className={`mt-4 rounded-md border px-3 py-2 text-sm ${failedStep ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border bg-muted text-muted-foreground"}`}
+        >
           {message}
         </div>
       )}

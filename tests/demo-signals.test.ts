@@ -19,6 +19,18 @@ describe("demo signal provenance badges", () => {
     });
   });
 
+  it("does not present an unimplemented visual adapter as real evidence", () => {
+    const signals = buildDemoSignalBadges({
+      ocrProvider: "mock",
+      regulatoryProvider: "bpom_api",
+      visualProvider: "siglip_adapter",
+      visualStatus: "inconclusive",
+      judgeProvider: "mock",
+    });
+
+    expect(signals.visual.mode).toBe("mock");
+  });
+
   it("labels an unavailable visual check as roadmap rather than a broken mock result", () => {
     const signals = buildDemoSignalBadges({
       ocrProvider: "mock",

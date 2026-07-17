@@ -195,7 +195,7 @@ export default function DemoPage() {
       if (!judgeResponse.ok) throw new Error(judgeJson.error ?? "Evidence judge stage failed");
       setJudge(judgeJson);
       setStage("complete");
-      await loadReadiness();
+      void loadReadiness().catch(() => undefined);
     } catch (caught) {
       setStage("failed");
       setError((caught as Error).message || "The demo did not complete. Retry the demo or inspect the saved core evidence.");

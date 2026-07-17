@@ -60,7 +60,7 @@ export function buildDemoSignalBadges(input: DemoSignalInput): DemoSignalBadges 
         }
       : {
           label: "Visual",
-          mode: modeFromProvider(input.visualProvider, ["siglip_adapter", "manual"]),
+          mode: modeFromProvider(input.visualProvider, ["manual"]),
           provider: input.visualProvider,
           detail: input.visualProvider === "mock" ? "adapter/mock similarity" : null,
         },

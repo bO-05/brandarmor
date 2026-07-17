@@ -1,5 +1,5 @@
 import { envValue } from "@/lib/env";
-import { fetchWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
+import { fetchJsonWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
 
 const MARKETPLACE_PATTERNS = [
   { name: "shopee", pattern: /shopee/i },
@@ -23,8 +23,9 @@ export async function discoverCandidates(query: string): Promise<DiscoveryCandid
   if (!apiKey) return mockCandidates(query);
 
   let response: Response;
+  let raw: any;
   try {
-    response = await fetchWithProviderTimeout("Perplexity discovery", "https://api.perplexity.ai/chat/completions", {
+    const result = await fetchJsonWithProviderTimeout<any>("Perplexity discovery", "https://api.perplexity.ai/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -44,10 +45,11 @@ export async function discoverCandidates(query: string): Promise<DiscoveryCandid
         ],
       }),
     }, 10_000);
+    response = result.response;
+    raw = result.json;
   } catch (error) {
     return mockCandidates(query, providerFailure(error, "Perplexity discovery").safeMessage);
   }
-  const raw = await response.json().catch(() => null);
   if (!response.ok) return mockCandidates(query, "Perplexity discovery is unavailable; showing clearly labeled demo candidates.");
   const content = raw?.choices?.[0]?.message?.content ?? "[]";
   try {

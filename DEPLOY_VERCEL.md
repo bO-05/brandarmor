@@ -56,7 +56,7 @@ Optional:
 
 Expected:
 
-- `/api/health` returns `{"status":"ok","app":"brandarmor-v4","version":"0.4.2"}`.
+- `/api/health` returns `{"status":"ok","app":"brandarmor","version":"0.5.0"}` after the v0.5.0 branch is deployed.
 - `/api/health/demo-readiness` reports writable data and seeded demo readiness. Empty serverless stores auto-seed before judges see an empty app.
 - `/api/health/integrations` labels BPOM, Mistral OCR, Anthropic judge, Mistral fallback, and Perplexity as configured/implemented when env vars are present. Browser-Use and Hugging Face remain roadmap.
 
@@ -113,4 +113,3 @@ Record:
 - `/api/health/demo-readiness` response with `demoReady: true`.
 - `/api/listings` response showing stable seeded IDs.
 - One successful `/api/demo/run` response showing mock/real signals.
-response showing mock/real signals.

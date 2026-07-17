@@ -1,6 +1,6 @@
 import type { Evidence, Listing, LlmJudgeAssessment, OcrArtifact, Product, RegulatoryCheck, Score, VisualMatchEvidence } from "@/domain/types";
 import { envValue, hasEnvValue } from "@/lib/env";
-import { fetchWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
+import { fetchJsonWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
 
 export interface JudgeEvidenceBundle {
   listing: Listing;
@@ -171,12 +171,15 @@ async function runMistralJudge(
   fallbackContext?: { from: "anthropic"; status: number; errorType?: string | null }
 ): Promise<Omit<LlmJudgeAssessment, "id" | "listingId" | "scoreId" | "createdAt">> {
   let response: Response;
+  let raw: any;
   try {
-    response = await fetchWithProviderTimeout("Mistral judge", "https://api.mistral.ai/v1/chat/completions", {
+    const result = await fetchJsonWithProviderTimeout<any>("Mistral judge", "https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${envValue("MISTRAL_API_KEY")}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model: DEFAULT_MISTRAL_MODEL, temperature: 0, messages: [{ role: "user", content: prompt }] }),
     }, 12_000);
+    response = result.response;
+    raw = result.json;
   } catch (error) {
     const failure = providerFailure(error, "Mistral judge");
     return {
@@ -187,7 +190,6 @@ async function runMistralJudge(
       error: null,
     };
   }
-  const raw = await response.json().catch(() => null);
   if (!response.ok) {
     return {
       provider: "mock",
@@ -217,8 +219,9 @@ export async function runLlmJudge(bundle: JudgeEvidenceBundle, forceMock = false
   const prompt = buildPrompt(bundle);
   if (provider === "anthropic" && hasEnvValue("ANTHROPIC_API_KEY")) {
     let response: Response;
+    let raw: any;
     try {
-      response = await fetchWithProviderTimeout("Anthropic judge", "https://api.anthropic.com/v1/messages", {
+      const result = await fetchJsonWithProviderTimeout<any>("Anthropic judge", "https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
           "x-api-key": envValue("ANTHROPIC_API_KEY") ?? "",
@@ -234,6 +237,8 @@ export async function runLlmJudge(bundle: JudgeEvidenceBundle, forceMock = false
           messages: [{ role: "user", content: prompt }],
         }),
       }, 12_000);
+      response = result.response;
+      raw = result.json;
     } catch (error) {
       const failure = providerFailure(error, "Anthropic judge");
       if (hasEnvValue("MISTRAL_API_KEY")) {
@@ -247,7 +252,6 @@ export async function runLlmJudge(bundle: JudgeEvidenceBundle, forceMock = false
         error: null,
       };
     }
-    const raw = await response.json().catch(() => null);
     if (!response.ok) {
       if (isProviderConfigFallback(response.status, raw)) {
         if (hasEnvValue("MISTRAL_API_KEY")) return runMistralJudge(prompt, fallback, { from: "anthropic", status: response.status, errorType: raw?.error?.type ?? null });

@@ -11,6 +11,7 @@ import {
   clearLlmJudgeAssessmentsForListing,
   createEvidence,
   createOcrArtifact,
+  deleteReviewDecision,
   createRegulatoryCheck,
   createReviewDecision,
   createScore,
@@ -126,7 +127,9 @@ export async function POST() {
     });
     timings.scoring = elapsedMs(scoreStartedAt);
 
-    if (score.recommendedAction !== "ignore" && !getReviewDecision(listing.id)) {
+    if (score.recommendedAction === "ignore") {
+      deleteReviewDecision(listing.id);
+    } else if (!getReviewDecision(listing.id)) {
       createReviewDecision({ listingId: listing.id, scoreId: score.id, status: "pending" });
     }
 

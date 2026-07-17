@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildCaseReport } from "@/lib/case-report";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import {
   getEvidence,
   getLatestLlmJudgeAssessment,
@@ -31,6 +32,7 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "format must be json or pdf" }, { status: 400 });
   }
 
+  ensureDemoSeeded();
   const listing = getListing(listingId);
   if (!listing) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
 

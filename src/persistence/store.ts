@@ -213,7 +213,7 @@ export function createScore(data: Omit<Score, "id" | "createdAt">): Score {
   const now = new Date().toISOString();
   const scores = getScores();
   const existing = scores.findIndex((s) => s.listingId === data.listingId);
-  const score: Score = { id: uid(), ...data, createdAt: now };
+  const score: Score = { id: existing >= 0 ? scores[existing].id : uid(), ...data, createdAt: now };
   if (existing >= 0) scores[existing] = score;
   else scores.push(score);
   writeJson("scores", scores);
@@ -231,9 +231,15 @@ export function getLatestOcrArtifact(listingId: string): OcrArtifact | undefined
 }
 
 export function createOcrArtifact(data: Omit<OcrArtifact, "id" | "createdAt">): OcrArtifact {
-  const artifact: OcrArtifact = { id: uid(), ...data, createdAt: new Date().toISOString() };
   const all = readJson<OcrArtifact>("ocr_artifacts");
-  all.push(artifact);
+  const existing = all.findIndex((artifact) => artifact.listingId === data.listingId);
+  const artifact: OcrArtifact = {
+    id: existing >= 0 ? all[existing].id : uid(),
+    ...data,
+    createdAt: new Date().toISOString(),
+  };
+  if (existing >= 0) all[existing] = artifact;
+  else all.push(artifact);
   writeJson("ocr_artifacts", all);
   return artifact;
 }
@@ -274,9 +280,15 @@ export function getLatestRegulatoryCheck(listingId: string): RegulatoryCheck | u
 }
 
 export function createRegulatoryCheck(data: Omit<RegulatoryCheck, "id" | "createdAt">): RegulatoryCheck {
-  const record: RegulatoryCheck = { id: uid(), ...data, createdAt: new Date().toISOString() };
   const all = readJson<RegulatoryCheck>("regulatory_checks");
-  all.push(record);
+  const existing = all.findIndex((record) => record.listingId === data.listingId);
+  const record: RegulatoryCheck = {
+    id: existing >= 0 ? all[existing].id : uid(),
+    ...data,
+    createdAt: new Date().toISOString(),
+  };
+  if (existing >= 0) all[existing] = record;
+  else all.push(record);
   writeJson("regulatory_checks", all);
   return record;
 }
@@ -292,9 +304,15 @@ export function getLatestVisualMatch(listingId: string): VisualMatchEvidence | u
 }
 
 export function createVisualMatch(data: Omit<VisualMatchEvidence, "id" | "createdAt">): VisualMatchEvidence {
-  const record: VisualMatchEvidence = { id: uid(), ...data, createdAt: new Date().toISOString() };
   const all = readJson<VisualMatchEvidence>("visual_matches");
-  all.push(record);
+  const existing = all.findIndex((record) => record.listingId === data.listingId);
+  const record: VisualMatchEvidence = {
+    id: existing >= 0 ? all[existing].id : uid(),
+    ...data,
+    createdAt: new Date().toISOString(),
+  };
+  if (existing >= 0) all[existing] = record;
+  else all.push(record);
   writeJson("visual_matches", all);
   return record;
 }
@@ -316,9 +334,15 @@ export function clearLlmJudgeAssessmentsForListing(listingId: string): void {
 }
 
 export function createLlmJudgeAssessment(data: Omit<LlmJudgeAssessment, "id" | "createdAt">): LlmJudgeAssessment {
-  const record: LlmJudgeAssessment = { id: uid(), ...data, createdAt: new Date().toISOString() };
   const all = readJson<LlmJudgeAssessment>("llm_judge_assessments");
-  all.push(record);
+  const existing = all.findIndex((record) => record.listingId === data.listingId);
+  const record: LlmJudgeAssessment = {
+    id: existing >= 0 ? all[existing].id : uid(),
+    ...data,
+    createdAt: new Date().toISOString(),
+  };
+  if (existing >= 0) all[existing] = record;
+  else all.push(record);
   writeJson("llm_judge_assessments", all);
   return record;
 }
@@ -330,6 +354,12 @@ export function getReviewDecisions(): ReviewDecision[] {
 
 export function getReviewDecision(listingId: string): ReviewDecision | undefined {
   return getReviewDecisions().find((d) => d.listingId === listingId);
+}
+
+export function deleteReviewDecision(listingId: string): void {
+  const decisions = getReviewDecisions();
+  const filtered = decisions.filter((decision) => decision.listingId !== listingId);
+  if (filtered.length !== decisions.length) writeJson("review_decisions", filtered);
 }
 
 export function createReviewDecision(data: InsertReviewDecision): ReviewDecision {
@@ -483,8 +513,14 @@ export function getEvidenceById(id: string): Evidence | undefined {
 
 export function createEvidence(data: InsertEvidence): Evidence {
   const now = new Date().toISOString();
+  const all = readJson<Evidence>("evidence");
+  const existing = all.findIndex((record) => (
+    record.listingId === data.listingId &&
+    record.evidenceType === data.evidenceType &&
+    record.fieldName === data.fieldName
+  ));
   const evidence: Evidence = {
-    id: uid(),
+    id: existing >= 0 ? all[existing].id : uid(),
     listingId: data.listingId,
     evidenceType: data.evidenceType,
     fieldName: data.fieldName,
@@ -494,8 +530,8 @@ export function createEvidence(data: InsertEvidence): Evidence {
     notes: data.notes ?? null,
     createdAt: now,
   };
-  const all = readJson<Evidence>("evidence");
-  all.push(evidence);
+  if (existing >= 0) all[existing] = evidence;
+  else all.push(evidence);
   writeJson("evidence", all);
   return evidence;
 }

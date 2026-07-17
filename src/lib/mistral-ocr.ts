@@ -1,6 +1,6 @@
 import type { OcrArtifact, ParsedPackagingFields } from "@/domain/types";
 import { envValue } from "@/lib/env";
-import { fetchWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
+import { fetchJsonWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
 
 const FALLBACK_MODEL = "mistral-ocr-latest";
 
@@ -162,8 +162,9 @@ export async function processMistralOcr(input: OcrProcessInput): Promise<OcrProc
   }
 
   let response: Response;
+  let raw: any;
   try {
-    response = await fetchWithProviderTimeout("Mistral OCR", "https://api.mistral.ai/v1/ocr", {
+    const result = await fetchJsonWithProviderTimeout<any>("Mistral OCR", "https://api.mistral.ai/v1/ocr", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -179,6 +180,8 @@ export async function processMistralOcr(input: OcrProcessInput): Promise<OcrProc
         confidence_scores_granularity: "page",
       }),
     }, 12_000);
+    response = result.response;
+    raw = result.json;
   } catch (error) {
     const failure = providerFailure(error, "Mistral OCR");
     return {
@@ -196,8 +199,6 @@ export async function processMistralOcr(input: OcrProcessInput): Promise<OcrProc
       error: failure.safeMessage,
     };
   }
-
-  const raw = await response.json().catch(() => null);
   if (!response.ok) {
     return {
       provider: "mistral",

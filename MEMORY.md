@@ -15,7 +15,7 @@ What was rejected or deferred:
 A real OCR claim without a rights-cleared public image, real vision embeddings, fabricated evaluation fixtures, a currency cost estimate without a verified rate card and durable usage ledger, deployment, merge, force-push, external reporting, enforcement, and production infrastructure changes.
 
 Verification:
-`npm run typecheck`, `BPOM_DISABLE_API=1 npm test` with 188/188 passing, `npm run build`, React Doctor v0.7.8 at 100/100, local health endpoint smoke checks, PDF `%PDF` verification, and five staged demo/report runs under 1.4 seconds using the labeled mock-provider path.
+`npm run typecheck`, `BPOM_DISABLE_API=1 npm test` with 195/195 passing, `npm run build`, React Doctor v0.7.8 at 100/100, local health endpoint smoke checks, PDF `%PDF` verification, and five staged demo/report runs under 1.4 seconds using the labeled mock-provider path.
 
 Next:
 Approve and review the feature pull request, deploy only after review, repeat public smoke tests, collect rights-cleared flagship imagery for real OCR, then add provenance-documented evaluation cases rather than inflating the pilot fixture count.

@@ -26,18 +26,30 @@ export type ProviderFailure = {
   safeMessage: string;
 };
 
-export async function fetchWithProviderTimeout(
+export async function fetchJsonWithProviderTimeout<T = unknown>(
   provider: string,
   input: RequestInfo | URL,
   init: RequestInit = {},
   timeoutMs = 12_000
-): Promise<Response> {
+): Promise<{ response: Response; json: T | null }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    return await fetch(input, { ...init, signal: controller.signal });
+    const response = await fetch(input, { ...init, signal: controller.signal });
+    try {
+      const json = await response.json() as T;
+      return { response, json };
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new ProviderTimeoutError(provider, timeoutMs);
+      }
+      return { response, json: null };
+    }
   } catch (error) {
+    if (error instanceof ProviderTimeoutError || error instanceof ProviderRequestError) {
+      throw error;
+    }
     if (controller.signal.aborted) {
       throw new ProviderTimeoutError(provider, timeoutMs);
     }

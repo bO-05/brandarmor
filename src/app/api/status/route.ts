@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getListings, getReviewDecisions, getScores } from "@/persistence/store";
 import { getEvaluationFixtureCount } from "@/evaluation/dataset";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import type { AmbientStatusInput } from "@/lib/ui-ux";
 
 export async function GET() {
   try {
+    ensureDemoSeeded();
     const listings = getListings();
     const scores = getScores();
     const reviews = getReviewDecisions();

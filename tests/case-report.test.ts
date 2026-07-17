@@ -162,7 +162,20 @@ describe("case report assembler", () => {
     expect(report.investigation.events.map((event) => event.type)).toContain("human_reviewed");
     expect(report.investigation.doNotClaimReasons.join(" ")).not.toContain("No human review decision");
     expect(report.review).toMatchObject({ status: "needs_more_evidence" });
-    expect(JSON.stringify(report.review)).not.toContain("private-reviewer");
-    expect(JSON.stringify(report.review)).not.toContain("Internal-only note");
+    expect(JSON.stringify(report)).not.toContain("private-reviewer");
+    expect(JSON.stringify(report)).not.toContain("Internal-only note");
+
+    const adapterReport = buildCaseReport({
+      listing,
+      product,
+      evidence,
+      ocr: null,
+      regulatory,
+      visual: { ...visual, provider: "siglip_adapter", status: "inconclusive", similarityScore: 0.5 },
+      score,
+      judge: null,
+      review,
+    }, "2026-07-17T00:05:00.000Z");
+    expect(adapterReport.provenance.find((entry) => entry.area === "Visual comparison")?.mode).toBe("mock");
   });
 });

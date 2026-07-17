@@ -1,5 +1,6 @@
 import ListingsPage from "./page-client";
 import { getListings, getScores } from "@/persistence/store";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 
 export const metadata = {
   title: "Listings | BrandArmor",
@@ -7,5 +8,6 @@ export const metadata = {
 };
 
 export default function Page() {
+  ensureDemoSeeded();
   return <ListingsPage initialListings={getListings()} initialScores={getScores()} />;
 }

@@ -160,9 +160,23 @@ export type CaseReport = z.infer<typeof caseReportSchema>;
 const DISCLAIMER = "Evidence prioritization for human review — not a legal determination of counterfeiting or authenticity." as const;
 const CLAIM_BOUNDARY = "BrandArmor routes suspicious marketplace listings for evidence-backed human review. It does not automatically confirm counterfeiting, authenticity, legal violations, or enforcement outcomes." as const;
 
-function modeFor(provider: string | null | undefined, isRoadmap = false): "real" | "mock" | "roadmap" {
-  if (isRoadmap) return "roadmap";
-  return provider === "mock" || !provider ? "mock" : "real";
+type ReportProvenanceArea = "OCR" | "BPOM/NIE" | "Visual comparison" | "Evidence judge";
+
+const verifiedProviders: Record<ReportProvenanceArea, readonly string[]> = {
+  OCR: ["mistral"],
+  "BPOM/NIE": ["bpom_api"],
+  "Visual comparison": ["manual"],
+  "Evidence judge": ["anthropic", "mistral"],
+};
+
+function modeFor(
+  area: ReportProvenanceArea,
+  provider: string | null | undefined,
+  isUnavailable = false,
+): "real" | "mock" | "roadmap" {
+  if (isUnavailable || !provider) return "roadmap";
+  if (verifiedProviders[area].includes(provider)) return "real";
+  return "mock";
 }
 
 export function buildCaseReport(bundle: InvestigationArtifactBundle, generatedAt = new Date().toISOString()): CaseReport {
@@ -297,24 +311,24 @@ export function buildCaseReport(bundle: InvestigationArtifactBundle, generatedAt
     provenance: [
       {
         area: "OCR",
-        mode: modeFor(ocr?.provider),
+        mode: modeFor("OCR", ocr?.provider, !ocr),
         detail: ocr ? `${ocr.provider} / ${ocr.model}` : "Not run",
       },
       {
         area: "BPOM/NIE",
-        mode: modeFor(regulatory?.provider),
+        mode: modeFor("BPOM/NIE", regulatory?.provider, !regulatory),
         detail: regulatory ? `${regulatory.provider} / ${regulatory.status}` : "Not run",
       },
       {
         area: "Visual comparison",
-        mode: modeFor(visual?.provider, visual?.status === "not_available"),
+        mode: modeFor("Visual comparison", visual?.provider, !visual || visual.status === "not_available"),
         detail: visual?.status === "not_available"
           ? "Roadmap-only for this case; no official and suspect image pair is available."
           : visual ? `${visual.provider} / ${visual.status}` : "Not run",
       },
       {
         area: "Evidence judge",
-        mode: modeFor(judge?.provider),
+        mode: modeFor("Evidence judge", judge?.provider, !judge),
         detail: judge ? `${judge.provider} / ${judge.judgeRisk}` : "Not run",
       },
     ],

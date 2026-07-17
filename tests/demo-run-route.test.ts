@@ -2,9 +2,18 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { getEvidence, resetDataDir, setDataDir } from "../src/persistence/store";
+import { getEvidence, getReviewDecision, getScore, resetDataDir, setDataDir } from "../src/persistence/store";
 
 const originalEnv = { ...process.env };
+const generatedFieldNames = [
+  "ocr_markdown",
+  "ocr_bpom_nie",
+  "ocr_volume_or_size",
+  "ocr_ingredients",
+  "ocr_claims",
+  "regulatory_status",
+  "visual_similarity",
+];
 
 describe("POST /api/demo/run", () => {
   let tmpDir: string;
@@ -30,14 +39,16 @@ describe("POST /api/demo/run", () => {
     const firstResponse = await route.POST();
     const first = await firstResponse.json();
     const firstGeneratedFields = getEvidence(first.listingId)
-      .filter((entry) => ["ocr_markdown", "ocr_bpom_nie", "ocr_volume_or_size", "ocr_claims", "regulatory_status", "visual_similarity"].includes(entry.fieldName))
+      .filter((entry) => generatedFieldNames.includes(entry.fieldName))
       .map((entry) => entry.fieldName)
       .sort();
+    const firstScoreId = getScore(first.listingId)?.id;
+    const firstReviewScoreId = getReviewDecision(first.listingId)?.scoreId;
 
     const secondResponse = await route.POST();
     const second = await secondResponse.json();
     const secondGeneratedFields = getEvidence(second.listingId)
-      .filter((entry) => ["ocr_markdown", "ocr_bpom_nie", "ocr_volume_or_size", "ocr_claims", "regulatory_status", "visual_similarity"].includes(entry.fieldName))
+      .filter((entry) => generatedFieldNames.includes(entry.fieldName))
       .map((entry) => entry.fieldName)
       .sort();
 
@@ -49,6 +60,8 @@ describe("POST /api/demo/run", () => {
     expect(secondResponse.status).toBe(201);
     expect(second.listingId).toBe(first.listingId);
     expect(secondGeneratedFields).toEqual(firstGeneratedFields);
+    expect(getScore(second.listingId)?.id).toBe(firstScoreId);
+    expect(getReviewDecision(second.listingId)?.scoreId).toBe(firstReviewScoreId);
     expect(route.maxDuration).toBe(60);
   });
 });
