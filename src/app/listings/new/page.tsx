@@ -77,23 +77,31 @@ export default function NewListingPage() {
     u?: boolean;
     placeholder?: string;
   }) {
+    const id = `listing-${k}`;
+    const errorId = `${id}-error`;
+    const isPrice = k === "price";
+
     return (
       <div key={k}>
-        <label className="block text-sm font-medium mb-1">{l}</label>
-        {t ? <textarea value={form[k]} onChange={e => set(k,e.target.value)} placeholder={placeholder} className="w-full px-3 py-2 border border-border rounded-md bg-background" rows={3} />
+        <label htmlFor={id} className="mb-1 block text-sm font-medium">{l}</label>
+        {t ? <textarea id={id} name={k} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} className="w-full rounded-md border border-border bg-background px-3 py-2" rows={3} />
           : <input
-              type={n?"text":u?"url":"text"}
-              inputMode={n?"decimal":undefined}
+              id={id}
+              name={k}
+              type={n ? "text" : u ? "url" : "text"}
+              inputMode={n ? "decimal" : undefined}
               value={form[k]}
               onChange={e => {
-                set(k,e.target.value);
-                if (k === "price") setPriceError(validatePrice(e.target.value));
+                set(k, e.target.value);
+                if (isPrice) setPriceError(validatePrice(e.target.value));
               }}
-              onBlur={() => k === "price" && setPriceError(validatePrice(form.price))}
+              onBlur={() => isPrice && setPriceError(validatePrice(form.price))}
               placeholder={placeholder}
-              className="w-full px-3 py-2 border border-border rounded-md bg-background"
+              aria-invalid={isPrice && Boolean(priceError)}
+              aria-describedby={isPrice && priceError ? errorId : undefined}
+              className="w-full rounded-md border border-border bg-background px-3 py-2"
             />}
-        {k === "price" && priceError && <p className="mt-1 text-xs text-destructive">{priceError}</p>}
+        {isPrice && priceError && <p id={errorId} className="mt-1 text-xs text-destructive">{priceError}</p>}
       </div>
     );
   }
@@ -103,8 +111,8 @@ export default function NewListingPage() {
       <h1 className="text-2xl font-bold mb-6">New Listing</h1>
       <form onSubmit={handleSubmit} className="surface-card rounded-lg p-6 space-y-3">
         <div>
-          <label className="block text-sm font-medium mb-1">Product Baseline</label>
-          <select value={form.productId} onChange={(e) => set("productId", e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background">
+          <label htmlFor="listing-product-baseline" className="mb-1 block text-sm font-medium">Product Baseline</label>
+          <select id="listing-product-baseline" name="productId" value={form.productId} onChange={(e) => set("productId", e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2">
             <option value="">No baseline selected</option>
             {products.map((p) => <option key={p.id} value={p.id}>{p.name}{p.bpomNie ? ` / ${p.bpomNie}` : ""}</option>)}
           </select>

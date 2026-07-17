@@ -1,5 +1,6 @@
 import type { Evidence, Listing, LlmJudgeAssessment, OcrArtifact, Product, RegulatoryCheck, Score, VisualMatchEvidence } from "@/domain/types";
 import { envValue, hasEnvValue } from "@/lib/env";
+import { fetchJsonWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
 
 export interface JudgeEvidenceBundle {
   listing: Listing;
@@ -169,15 +170,34 @@ async function runMistralJudge(
   fallback: JudgePayload,
   fallbackContext?: { from: "anthropic"; status: number; errorType?: string | null }
 ): Promise<Omit<LlmJudgeAssessment, "id" | "listingId" | "scoreId" | "createdAt">> {
-  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${envValue("MISTRAL_API_KEY")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: DEFAULT_MISTRAL_MODEL, temperature: 0, messages: [{ role: "user", content: prompt }] }),
-  });
-  const raw = await response.json().catch(() => null);
+  let response: Response;
+  let raw: any;
+  try {
+    const result = await fetchJsonWithProviderTimeout<any>("Mistral judge", "https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${envValue("MISTRAL_API_KEY")}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: DEFAULT_MISTRAL_MODEL, temperature: 0, messages: [{ role: "user", content: prompt }] }),
+    }, 12_000);
+    response = result.response;
+    raw = result.json;
+  } catch (error) {
+    const failure = providerFailure(error, "Mistral judge");
+    return {
+      provider: "mock",
+      model: "mock-evidence-judge",
+      ...fallback,
+      rawJson: { mock: true, fallbackFrom: "mistral", failure },
+      error: null,
+    };
+  }
   if (!response.ok) {
-    if (isProviderConfigFallback(response.status, raw)) return explicitMockFallback("mistral", response.status, fallback);
-    return { provider: "mistral", model: DEFAULT_MISTRAL_MODEL, ...fallback, rawJson: raw, error: raw?.message ?? `Mistral judge failed with HTTP ${response.status}` };
+    return {
+      provider: "mock",
+      model: "mock-evidence-judge",
+      ...fallback,
+      rawJson: { mock: true, fallbackFrom: "mistral", providerStatus: response.status },
+      error: null,
+    };
   }
   const text = raw?.choices?.[0]?.message?.content ?? "";
   return {
@@ -198,29 +218,55 @@ export async function runLlmJudge(bundle: JudgeEvidenceBundle, forceMock = false
 
   const prompt = buildPrompt(bundle);
   if (provider === "anthropic" && hasEnvValue("ANTHROPIC_API_KEY")) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": envValue("ANTHROPIC_API_KEY") ?? "",
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: DEFAULT_ANTHROPIC_MODEL,
-        max_tokens: 2400,
-        temperature: 0,
-        tools: [JUDGE_TOOL],
-        tool_choice: { type: "tool", name: JUDGE_TOOL_NAME },
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    const raw = await response.json().catch(() => null);
+    let response: Response;
+    let raw: any;
+    try {
+      const result = await fetchJsonWithProviderTimeout<any>("Anthropic judge", "https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": envValue("ANTHROPIC_API_KEY") ?? "",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: DEFAULT_ANTHROPIC_MODEL,
+          max_tokens: 2400,
+          temperature: 0,
+          tools: [JUDGE_TOOL],
+          tool_choice: { type: "tool", name: JUDGE_TOOL_NAME },
+          messages: [{ role: "user", content: prompt }],
+        }),
+      }, 12_000);
+      response = result.response;
+      raw = result.json;
+    } catch (error) {
+      const failure = providerFailure(error, "Anthropic judge");
+      if (hasEnvValue("MISTRAL_API_KEY")) {
+        return runMistralJudge(prompt, fallback, { from: "anthropic", status: 0, errorType: failure.code });
+      }
+      return {
+        provider: "mock",
+        model: "mock-evidence-judge",
+        ...fallback,
+        rawJson: { mock: true, fallbackFrom: "anthropic", failure },
+        error: null,
+      };
+    }
     if (!response.ok) {
       if (isProviderConfigFallback(response.status, raw)) {
         if (hasEnvValue("MISTRAL_API_KEY")) return runMistralJudge(prompt, fallback, { from: "anthropic", status: response.status, errorType: raw?.error?.type ?? null });
         return explicitMockFallback("anthropic", response.status, fallback);
       }
-      return { provider: "anthropic", model: DEFAULT_ANTHROPIC_MODEL, ...fallback, rawJson: raw, error: raw?.error?.message ?? `Anthropic judge failed with HTTP ${response.status}` };
+      if (hasEnvValue("MISTRAL_API_KEY")) {
+        return runMistralJudge(prompt, fallback, { from: "anthropic", status: response.status, errorType: "provider_http_error" });
+      }
+      return {
+        provider: "mock",
+        model: "mock-evidence-judge",
+        ...fallback,
+        rawJson: { mock: true, fallbackFrom: "anthropic", providerStatus: response.status },
+        error: null,
+      };
     }
     return { provider: "anthropic", model: DEFAULT_ANTHROPIC_MODEL, ...parseAnthropicJudge(raw, fallback), rawJson: raw, error: null };
   }

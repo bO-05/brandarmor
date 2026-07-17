@@ -3,6 +3,9 @@ import { judgeRequestSchema } from "@/domain/schemas";
 import { runLlmJudge } from "@/lib/llm-judge";
 import { createLlmJudgeAssessment, getEvidence, getLatestLlmJudgeAssessment, getLatestOcrArtifact, getLatestRegulatoryCheck, getLatestVisualMatch, getListing, getLlmJudgeAssessments, getProduct, getScore } from "@/persistence/store";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const listingId = searchParams.get("listingId");
@@ -28,7 +31,7 @@ export async function POST(request: Request) {
     }, parsed.data.forceMock);
     const assessment = createLlmJudgeAssessment({ listingId: listing.id, scoreId: score?.id ?? null, ...result });
     return NextResponse.json(assessment, { status: result.error ? 502 : 201 });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "The evidence judge could not complete. Retry the step; any fallback result will remain clearly labeled." }, { status: 500 });
   }
 }

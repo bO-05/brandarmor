@@ -1,5 +1,25 @@
 # BrandArmor Memory
 
+## 2026-07-17 - v0.5.0 Evidence-Ready Demo And Review Handoff
+
+What was decided:
+BrandArmor v0.5.0 should favor a staged, bounded evidence path over one long demo request. Core evidence is persisted before the LLM judge runs; the interface surfaces progress, elapsed time, and an explicit fallback state. Listing workspaces now expose a deterministic Investigation Trail and one typed evidence report model shared by JSON and PDF downloads.
+
+Why:
+The former demo route could run for roughly 40 seconds with no meaningful progress, and a blank visual state, dashboard/evaluation count contradiction, missing report artifact, and hidden investigation logic weakened the on-camera credibility story. A reviewer needs to see what was collected, what is missing, why a case was routed, and what cannot be claimed.
+
+What was shipped:
+Route duration limits and provider safety for OCR, judge, discovery, regulatory, visual, and assessment paths; an accessible staged demo UI; JSON/PDF evidence report export through @react-pdf/renderer; report schema validation; projected investigation events; authoritative pilot fixture counts; Jakarta-time date formatting; correctly associated manual-intake labels; explicit visual roadmap labels; mobile navigation/trail improvements; restrained motion tokens and reduced-motion handling; and a real/fallback/roadmap integration ledger.
+
+What was rejected or deferred:
+A real OCR claim without a rights-cleared public image, real vision embeddings, fabricated evaluation fixtures, a currency cost estimate without a verified rate card and durable usage ledger, deployment, merge, force-push, external reporting, enforcement, and production infrastructure changes.
+
+Verification:
+`npm run typecheck`, `BPOM_DISABLE_API=1 npm test` with 195/195 passing, `npm run build`, React Doctor v0.7.8 at 100/100, local health endpoint smoke checks, PDF `%PDF` verification, and five staged demo/report runs under 1.4 seconds using the labeled mock-provider path.
+
+Next:
+Approve and review the feature pull request, deploy only after review, repeat public smoke tests, collect rights-cleared flagship imagery for real OCR, then add provenance-documented evaluation cases rather than inflating the pilot fixture count.
+
 ## 2026-05-31 - Deployed Demo Reliability
 
 What was decided:

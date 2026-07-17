@@ -66,6 +66,7 @@ export interface ListingCaseBriefInput {
   evidenceCount: number;
   regulatoryStatus: RegulatoryCheck["status"] | null;
   visualStatus: VisualMatchEvidence["status"] | null;
+  visualProvider?: VisualMatchEvidence["provider"] | null;
   judge: LlmJudgeAssessment | null;
 }
 
@@ -463,6 +464,15 @@ function statusTone(value: string | null): ListingCaseBriefStatus["tone"] {
   return "neutral";
 }
 
+function visualStatusLabel(
+  status: VisualMatchEvidence["status"] | null,
+  provider?: VisualMatchEvidence["provider"] | null
+): string {
+  if (!status) return "not run";
+  if (status === "not_available" && provider === "mock") return "roadmap — not run in demo";
+  return status.replaceAll("_", " ");
+}
+
 function dedupe(values: string[]): string[] {
   return Array.from(new Set(values.flatMap((value) => {
     const trimmed = value.trim();
@@ -481,7 +491,7 @@ export function buildListingCaseBrief(input: ListingCaseBriefInput): ListingCase
     ...(!input.hasProductBaseline ? ["Product baseline"] : []),
     ...(input.evidenceCount === 0 ? ["Stored listing evidence"] : []),
     ...(!input.regulatoryStatus || input.regulatoryStatus === "not_available" ? ["BPOM/NIE check"] : []),
-    ...(!input.visualStatus || input.visualStatus === "not_available" ? ["Visual comparison"] : []),
+    ...(!input.visualStatus || input.visualStatus === "not_available" ? [input.visualProvider === "mock" ? "Visual comparison roadmap" : "Visual comparison"] : []),
     ...(input.judge?.missingEvidence ?? []),
     ...(input.judge && input.judge.citedEvidenceIds.length === 0 ? ["Judge-cited evidence IDs"] : []),
   ]);
@@ -504,7 +514,7 @@ export function buildListingCaseBrief(input: ListingCaseBriefInput): ListingCase
     },
     {
       label: "Visual",
-      value: input.visualStatus?.replaceAll("_", " ") ?? "not run",
+      value: visualStatusLabel(input.visualStatus, input.visualProvider),
       tone: statusTone(input.visualStatus),
     },
     {
@@ -823,9 +833,11 @@ export function buildMediaPreview(input: MediaPreviewInput): MediaPreview {
   const sourceUrl = firstMediaUrl(input);
   const isPlaceholder = isDemoPlaceholderUrl(sourceUrl);
   const sourceConfidence = `${Math.round(input.sourceConfidence * 100)}% source confidence`;
-  const visualStatus = input.visualStatus
-    ? `${input.visualProvider ?? "visual"}: ${input.visualStatus.replaceAll("_", " ")}`
-    : "Visual comparison not run";
+  const visualStatus = input.visualStatus === "not_available" && input.visualProvider === "mock"
+    ? "Visual roadmap: not run in demo"
+    : input.visualStatus
+      ? `${input.visualProvider ?? "visual"}: ${input.visualStatus.replaceAll("_", " ")}`
+      : "Visual comparison not run";
   const referenceCount = input.productOfficialImageUrls.length;
   const referenceLabel = referenceCount > 0
     ? `${referenceCount} official reference image${referenceCount === 1 ? "" : "s"} recorded`

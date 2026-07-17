@@ -1,4 +1,4 @@
-// BrandArmor v4 - Core Domain Types
+// BrandArmor v0.5.0 - Core Domain Types
 export type BrandId = string;
 export type ProductId = string;
 export type ListingId = string;

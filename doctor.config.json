@@ -1,0 +1,24 @@
+{
+  "ignore": {
+    "files": [
+      ".next/**",
+      ".next-local/**",
+      "tests/evidence-behavioral-verify.cjs",
+      "tests/evidence-behavioral-verify.mjs",
+      "tests/evidence-behavioral.cjs",
+      "tests/evidence-direct-verify.mjs",
+      "tests/evidence-verify.cjs",
+      "tests/register-hooks.js"
+    ],
+    "overrides": [
+      {
+        "files": ["src/evaluation/index.ts"],
+        "rules": ["deslop/unused-file"]
+      },
+      {
+        "files": ["src/lib/utils.ts"],
+        "rules": ["deslop/unused-export"]
+      }
+    ]
+  }
+}

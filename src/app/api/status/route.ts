@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import { getEvaluationCases, getListings, getReviewDecisions, getScores } from "@/persistence/store";
+import { getListings, getReviewDecisions, getScores } from "@/persistence/store";
+import { getEvaluationFixtureCount } from "@/evaluation/dataset";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import type { AmbientStatusInput } from "@/lib/ui-ux";
 
 export async function GET() {
   try {
+    ensureDemoSeeded();
     const listings = getListings();
     const scores = getScores();
     const reviews = getReviewDecisions();
-    const evaluationCases = getEvaluationCases();
     const scoredListingIds = new Set(scores.map((score) => score.listingId));
 
     const status: AmbientStatusInput = {
@@ -16,7 +18,7 @@ export async function GET() {
       unscoredListingCount: listings.filter((listing) => !scoredListingIds.has(listing.id)).length,
       pendingReviewCount: reviews.filter((review) => review.status === "pending").length,
       highRiskScoreCount: scores.filter((score) => score.riskLevel === "high" || score.riskLevel === "critical").length,
-      evaluationCaseCount: evaluationCases.length,
+      evaluationCaseCount: getEvaluationFixtureCount(),
       reviewDecisionCount: reviews.length,
     };
 

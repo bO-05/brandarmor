@@ -56,15 +56,15 @@ export function DemoWorkflowTrail() {
   return (
     <nav aria-label="Demo workflow" className="mb-5 rounded-lg border border-border bg-muted/40 px-3 py-2">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <ol className="flex flex-wrap items-center gap-2 text-xs">
+        <ol className="grid grid-cols-2 gap-1 text-xs sm:flex sm:flex-wrap sm:items-center sm:gap-2">
           {trail.map((step, index) => {
             const active = isActive(pathname, step.href);
             return (
-              <li key={step.href} className="flex items-center gap-2">
-                {index > 0 && <span className="text-muted-foreground">/</span>}
+              <li key={step.href} className="flex min-w-0 items-center gap-2">
+                {index > 0 && <span className="hidden text-muted-foreground sm:inline">/</span>}
                 <Link
                   href={step.href}
-                  className={`inline-flex min-h-7 items-center rounded-md px-2.5 font-semibold ${
+                  className={`inline-flex min-h-8 w-full items-center justify-center rounded-md px-2.5 font-semibold sm:w-auto ${
                     active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background hover:text-foreground"
                   }`}
                 >

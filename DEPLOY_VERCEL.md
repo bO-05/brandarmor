@@ -1,4 +1,4 @@
-# Deploy BrandArmor v4 To Vercel
+# Deploy BrandArmor v0.5.0 To Vercel
 
 ## Prerequisites
 
@@ -56,7 +56,7 @@ Optional:
 
 Expected:
 
-- `/api/health` returns `{"status":"ok","app":"brandarmor-v4","version":"0.4.2"}`.
+- `/api/health` returns `{"status":"ok","app":"brandarmor","version":"0.5.0"}` after the v0.5.0 branch is deployed.
 - `/api/health/demo-readiness` reports writable data and seeded demo readiness. Empty serverless stores auto-seed before judges see an empty app.
 - `/api/health/integrations` labels BPOM, Mistral OCR, Anthropic judge, Mistral fallback, and Perplexity as configured/implemented when env vars are present. Browser-Use and Hugging Face remain roadmap.
 
@@ -100,7 +100,7 @@ Do not submit protected project or preview aliases that return Vercel authentica
 | Anthropic key works in console but app uses another key | Check for a stale parent environment variable. Locally use `scripts/start-local.ps1`, which reads `.env.local` explicitly. |
 | OCR stays mock in one-click demo | Expected for placeholder `example.com` screenshots. Use a publicly fetchable image URL through `/api/ocr` for real OCR. |
 | BPOM lookup times out | Retry; public endpoints can be slow. For offline testing only, set `BPOM_DISABLE_API=1`. |
-| Browser-Use or Hugging Face shown as roadmap | Correct for v0.4.2; env presence does not mean those integrations are implemented. |
+| Browser-Use or Hugging Face shown as roadmap | Correct for v0.5.0; env presence does not mean those integrations are implemented. |
 
 ## After Deployment
 

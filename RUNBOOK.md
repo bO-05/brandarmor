@@ -1,4 +1,4 @@
-# BrandArmor v4 Runbook
+# BrandArmor v0.5.0 Runbook
 
 ## Requirements
 
@@ -115,16 +115,24 @@ Expected result:
 - Demo data is seeded if the local store is empty.
 - On Vercel/serverless, an empty temp-backed store auto-seeds before judges see the app.
 - Seeded demo IDs are deterministic across serverless instances, so seeded listing deep links should not intermittently show `Listing not found`.
-- A candidate listing is selected.
-- OCR artifact is created.
-- Regulatory and visual evidence records are created.
-- A deterministic score is created.
-- A judge assessment is created. Anthropic runs as a real structured-output tool call when configured; Mistral is the real fallback; mock is the final explicit fallback.
-- Review and evaluation links are returned.
+- A candidate listing is selected and the bounded core stage stores OCR, regulatory, visual, and deterministic score evidence.
+- The UI then runs the evidence judge as a separately visible stage. Anthropic runs as a real structured-output tool call when configured; Mistral is the real fallback; mock is the final explicit fallback.
+- Provider timeouts or unavailable services leave a clearly labeled partial case rather than an unbounded spinner or raw provider error.
+- Review, evaluation, investigation-trail, JSON-report, and PDF-report paths are available from the resulting listing workspace.
 - The generated listing detail page shows a top next-action band, case brief, baseline-gated recommended evidence pipeline, inline review decision panel after a review item exists, a full evidence workspace disclosure for dense details, claim-safe action copy, and internal review language.
 - The review queue shows total, pending, and labeled item counts.
 - The evaluation page leads with reviewer workload and useful-review share before technical metrics.
 - Manual listing intake groups related fields on desktop, and JSON import includes a `Load sample JSON` action with `productId` in the sample.
+
+## Export An Evidence Report
+
+Open a listing workspace and use **Download PDF** or **Download JSON** in the Evidence report section.
+
+Both formats include the listing, product baseline, evidence records, OCR, BPOM/NIE result, visual state, score reasons, judge citations and gaps, investigation trail, human review state, provenance labels, and the disclaimer:
+
+> Evidence prioritization for human review — not a legal determination of counterfeiting or authenticity.
+
+Verify both downloads before a recording or review. JSON must parse against the case-report schema and PDF files must start with the `%PDF` header.
 
 ## Verify Deployed Demo
 
@@ -137,7 +145,7 @@ https://brandarmor.vercel.app/
 
 Minimum deployed smoke:
 
-- `/api/health` returns `status: "ok"` and version `0.4.2`.
+- `/api/health` returns `status: "ok"` and version `0.5.0` after the v0.5.0 branch is deployed.
 - `/api/health/demo-readiness` returns `demoReady: true`, `dataWritable: true`, 2 brands, 2 products, and 7 listings.
 - `/api/listings` includes stable seeded listing IDs, including `seed0000000060`.
 - `/listings/seed0000000060` renders the listing workspace after hydration and does not show `Listing not found`.
@@ -173,7 +181,8 @@ Do not delete source files when resetting demo data.
 - `npm run typecheck` passes.
 - `BPOM_DISABLE_API=1 npm test` passes.
 - `npm run build` passes.
-- `npx react-doctor@latest --verbose` reports `No issues found` and `100/100`.
+- `npx react-doctor@latest --verbose` from the repository root reports `No issues found` and `100/100` using `doctor.config.json`.
+- Run the staged demo five times; confirm every core stage, judge stage, JSON report, and PDF report completes without a hang.
 - Hydrated browser smoke checks pass for `/`, `/demo`, `/listings/new`, `/listings/import`, unlinked and linked listing detail pages, `/review`, and `/evaluation` when UI flows are changed. If no browser tool is available, use built-route HTTP smoke checks and clearly state that visual viewport inspection was skipped.
 - Deployed public smoke checks pass on `brandarmor.asynchronope.my.id` or `brandarmor.vercel.app`, including `demoReady: true` and a working seeded listing deep link.
 - `.env.local` is not present in Git.

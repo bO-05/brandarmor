@@ -47,7 +47,11 @@ export function getScoreColor(score: number): string {
 }
 
 const idrCurrencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
-const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'Asia/Jakarta',
+});
 
 export function formatCurrency(value: number | null | undefined, currency: string | null): string {
   if (value == null) return '---';

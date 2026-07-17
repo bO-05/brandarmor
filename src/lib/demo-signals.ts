@@ -1,6 +1,6 @@
 import type { LlmJudgeAssessment, OcrArtifact, RegulatoryCheck, VisualMatchEvidence } from "@/domain/types";
 
-export type DemoSignalMode = "real" | "mock";
+export type DemoSignalMode = "real" | "mock" | "roadmap";
 
 export interface DemoSignalBadge {
   label: string;
@@ -15,6 +15,7 @@ export interface DemoSignalInput {
   visualProvider: VisualMatchEvidence["provider"];
   judgeProvider: LlmJudgeAssessment["provider"];
   regulatoryStatus?: RegulatoryCheck["status"] | null;
+  visualStatus?: VisualMatchEvidence["status"] | null;
   bpomStatus?: string | null;
   bpomLookupDurationMs?: number | null;
 }
@@ -50,12 +51,19 @@ export function buildDemoSignalBadges(input: DemoSignalInput): DemoSignalBadges 
       provider: input.regulatoryProvider,
       detail: bpomDetail,
     },
-    visual: {
-      label: "Visual",
-      mode: modeFromProvider(input.visualProvider, ["siglip_adapter", "manual"]),
-      provider: input.visualProvider,
-      detail: input.visualProvider === "mock" ? "adapter/mock similarity" : null,
-    },
+    visual: input.visualStatus === "not_available"
+      ? {
+          label: "Visual check",
+          mode: "roadmap",
+          provider: "not run in demo",
+          detail: "No official and suspect image pair is available; no embedding score is shown.",
+        }
+      : {
+          label: "Visual",
+          mode: modeFromProvider(input.visualProvider, ["manual"]),
+          provider: input.visualProvider,
+          detail: input.visualProvider === "mock" ? "adapter/mock similarity" : null,
+        },
     judge: {
       label: "Judge",
       mode: modeFromProvider(input.judgeProvider, ["anthropic", "mistral"]),

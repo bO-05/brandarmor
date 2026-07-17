@@ -18,4 +18,32 @@ describe("demo signal provenance badges", () => {
       judge: expect.objectContaining({ mode: "real", provider: "anthropic" }),
     });
   });
+
+  it("does not present an unimplemented visual adapter as real evidence", () => {
+    const signals = buildDemoSignalBadges({
+      ocrProvider: "mock",
+      regulatoryProvider: "bpom_api",
+      visualProvider: "siglip_adapter",
+      visualStatus: "inconclusive",
+      judgeProvider: "mock",
+    });
+
+    expect(signals.visual.mode).toBe("mock");
+  });
+
+  it("labels an unavailable visual check as roadmap rather than a broken mock result", () => {
+    const signals = buildDemoSignalBadges({
+      ocrProvider: "mock",
+      regulatoryProvider: "bpom_api",
+      visualProvider: "mock",
+      visualStatus: "not_available",
+      judgeProvider: "mock",
+    });
+
+    expect(signals.visual).toMatchObject({
+      label: "Visual check",
+      mode: "roadmap",
+      provider: "not run in demo",
+    });
+  });
 });

@@ -19,6 +19,9 @@ import {
   updateListing,
 } from "@/persistence/store";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const listingId = searchParams.get("listingId");
@@ -101,7 +104,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ artifact, listing: updated, score }, { status: artifact.status === "failed" ? 502 : 201 });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "OCR could not complete. Check the image URL or retry the step." }, { status: 500 });
   }
 }

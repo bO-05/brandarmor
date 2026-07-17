@@ -1,4 +1,4 @@
-// BrandArmor v4 — Evaluation Seed Fixtures
+// BrandArmor v0.5.0 — Evaluation Seed Fixtures
 // 50 labeled Indonesian cosmetic marketplace listings for precision/recall benchmarking.
 // Drop into src/evaluation/fixtures.ts (replaces existing 7-case stub) or import from
 // src/evaluation/seed-listings.ts and re-export from src/evaluation/index.ts.

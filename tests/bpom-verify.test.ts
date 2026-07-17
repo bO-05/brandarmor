@@ -124,12 +124,14 @@ describe("verifyBpomNie", () => {
     expect(result.bpomStatus).toBe("Habis Berlaku");
   });
 
-  it("returns error when fetch fails", async () => {
+  it("returns a safe manual-linkout message when fetch fails", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new Error("network down");
     }) as any;
     const result = await verifyBpomNie("NA18261203080");
     expect(result.status).toBe("error");
-    expect(result.notes).toMatch(/network down/);
+    expect(result.notes).toContain("BPOM query could not complete");
+    expect(result.notes).toContain("official manual link-out");
+    expect(result.notes).not.toMatch(/network down/);
   });
 });

@@ -227,6 +227,7 @@ describe("buildListingCaseBrief", () => {
       evidenceCount: 2,
       regulatoryStatus: "not_available",
       visualStatus: "not_available",
+      visualProvider: "mock",
       score: score({ totalScore: 28, riskLevel: "medium", recommendedAction: "watch" }),
       judge: judge({
         judgeRisk: "insufficient_evidence",
@@ -238,6 +239,8 @@ describe("buildListingCaseBrief", () => {
     expect(brief.headline).toBe("More evidence is needed before review confidence improves");
     expect(brief.missingEvidence).toEqual(expect.arrayContaining(["public screenshot", "clear package image"]));
     expect(brief.recommendedNextStep).toContain("evidence");
+    expect(brief.evidenceStatus.find((item) => item.label === "Visual")?.value).toBe("roadmap — not run in demo");
+    expect(brief.missingEvidence).toContain("Visual comparison roadmap");
   });
 });
 

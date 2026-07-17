@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { getEvaluationFixtureCount } from "../src/evaluation/dataset";
 import {
   createBrand,
   createEvaluationCase,
@@ -95,7 +96,7 @@ describe("GET /api/status", () => {
       unscoredListingCount: 1,
       pendingReviewCount: 1,
       highRiskScoreCount: 1,
-      evaluationCaseCount: 1,
+      evaluationCaseCount: getEvaluationFixtureCount(),
       reviewDecisionCount: 1,
     });
   });

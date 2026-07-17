@@ -5,9 +5,11 @@ import { parseJsonImport } from "@/domain/import";
 import { computeScore, computeRiskLevel, computeRecommendedAction } from "@/domain/scoring";
 import { createScore } from "@/persistence/store";
 import { createReviewDecision } from "@/persistence/store";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 
 export async function GET(request: Request) {
   try {
+    ensureDemoSeeded();
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
     const listings = getListings(productId ?? undefined);

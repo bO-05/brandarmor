@@ -1,6 +1,6 @@
-# BrandArmor v4
+# BrandArmor v0.5.0
 
-Evidence-first suspicious listing review app for skincare/cosmetics marketplaces. V4 routes listings for evidence-backed review: capture listing evidence, run optional Mistral OCR, compare against an official product baseline, check BPOM/NIE evidence through the BPOM adapter, run visual comparison in an adapter/mock shape, score with transparent reasons, use Claude/Mistral as an optional evidence judge, collect internal human labels, and report pilot evaluation metrics.
+Evidence-first suspicious listing review app for skincare/cosmetics marketplaces. BrandArmor routes listings for evidence-backed human review: capture listing evidence, run optional Mistral OCR, compare against an official product baseline, check BPOM/NIE evidence through the BPOM adapter, report visual evidence honestly as real, mock, or roadmap-only, score with transparent reasons, use Claude/Mistral as an optional evidence judge, collect internal human labels, export a claim-safe JSON/PDF evidence report, and report pilot evaluation metrics.
 
 > **PIDI Digdaya × Hackathon 2026 (Bank Indonesia) — Team P1005.**
 > Problem Statement: Percepatan Layanan Publik, Ekonomi Kreatif, dan Ekspor Jasa Digital → Digitalisasi Ekonomi Kreatif → **IP Protection (brand-side, anti-counterfeit)** + **Market Insight Industri Kreatif**.
@@ -8,7 +8,7 @@ Evidence-first suspicious listing review app for skincare/cosmetics marketplaces
 
 ## Agent Handoff
 
-If you are a coding agent taking over this app, read `HANDOFF.md` first, then `RUNBOOK.md`, `ARCHITECTURE.md`, `KNOWN_LIMITS.md`, and `VERSION_HISTORY.md`.
+If you are a coding agent taking over this app, read `HANDOFF.md` first, then `RUNBOOK.md`, `ARCHITECTURE.md`, `KNOWN_LIMITS.md`, `CHANGELOG.md`, and `VERSION_HISTORY.md`.
 
 Also read `AGENTS.md`, `MEMORY.md`, and `ERRORS.md` before significant changes. They preserve the evidence-first agent operating model, durable decisions, and repeated failed approaches.
 
@@ -19,6 +19,7 @@ For the full operating scaffold, read:
 - `docs/ML_AI_ROADMAP.md`
 - `docs/CODEX_WORKING_PROTOCOL.md`
 - `docs/SOURCE_LEARNING_MAP.md`
+- `docs/DESIGN_ENGINEERING_AUDIT.md`
 
 ## Quick Start
 
@@ -57,9 +58,10 @@ The app uses Mistral OCR to extract text from listing screenshots/product images
 4. Run OCR, parse BPOM/NIE, size, expiry, batch/lot, ingredients, claims, seller, and price evidence.
 5. Compare text, regulatory, price/seller, and visual evidence against the baseline. The seeded demo baselines use real BPOM records for Somethinc Calm Down PHA 3% Soothing Everyday Toner and Gloglowing Baby Glow Lip Serum.
 6. Compute calibrated risk from deterministic features.
-7. Run the LLM evidence judge; it must cite evidence IDs and say insufficient evidence when proof is weak.
-8. Apply an internal human review label.
-9. Review pilot precision, recall, false-positive rate, false-negative rate, precision@K, and review burden on the Evaluation page.
+7. Run the LLM evidence judge as a separate, bounded stage; it must cite evidence IDs and say insufficient evidence when proof is weak.
+8. Project stored artifacts into the visible investigation trail, then download a JSON or PDF evidence report when a human reviewer needs a portable case file.
+9. Apply an internal human review label.
+10. Review pilot precision, recall, false-positive rate, false-negative rate, precision@K, and review burden on the Evaluation page.
 
 ## Agent Operating Model
 
@@ -82,18 +84,19 @@ Use `GET /api/health/integrations` to see which env-backed integrations are conf
 
 On Vercel the data dir (`/tmp`) is ephemeral and per-instance, so a fresh instance starts empty. To keep the public demo from ever showing an empty workspace:
 
-- `ensureDemoSeeded()` (see `src/persistence/auto-seed.ts`) repopulates the idempotent demo dataset whenever the store is empty, wired into a cold-start `src/instrumentation.ts` hook and the dashboard page.
+- `ensureDemoSeeded()` (see `src/persistence/auto-seed.ts`) repopulates the idempotent demo dataset whenever the store is empty. The dashboard and guided demo route call it before they read or create demo data, avoiding Node persistence imports in edge-compatible instrumentation builds.
 - Seeded ids are **deterministic** (`beginDeterministicIds()` in `src/lib/utils.ts`), so every instance seeds identical ids and listing deep-links (`/listings/<id>`) resolve no matter which instance serves the request.
 - Auto-on for serverless; set `BRANDARMOR_AUTO_SEED=0` to disable for a real production tenant, or `=1` to force on locally.
 
 ## Current Verification
 
-- App version: `0.4.2`.
-- Automated tests: `181/181` passing.
-- Build: `npm run build` passes with 21 API routes and 34 generated pages.
-- Public deployed demo verification: `brandarmor.asynchronope.my.id` and `brandarmor.vercel.app` return seeded demo data, stable seeded listing IDs, and working listing detail hydration.
-- Guided demo currently shows OCR/mock for placeholder screenshots, BPOM/real, visual/mock adapter, and judge/real when Anthropic or Mistral is configured.
-- The dashboard, listing workspace, review queue, evaluation page, manual intake, and JSON import now prioritize cold-user guidance, consolidated ambient status, action-first listing review, baseline-gated actions, claim-safe media previews, internal review language, visible queue counts, plain-language pilot evaluation, and claim-safe action labels.
+- App version: `0.5.0`.
+- Automated tests: `195/195` passing with `BPOM_DISABLE_API=1`.
+- Build: `npm run build` passes with the JSON/PDF report route and all dynamic evidence routes.
+- Local smoke verification: dashboard reports 50 authoritative pilot fixtures; staged demo core, mock judge fallback, JSON report, and PDF report return successfully.
+- Public deployed demo verification is still required after this branch is merged and deployed; no deployment was performed for this release candidate.
+- Guided demo now saves core evidence before the judge stage, shows visible progress and elapsed time, uses bounded provider fallbacks, labels an unavailable visual check as roadmap-only, and sends reviewers to the investigation trail and report export.
+- The dashboard, listing workspace, review queue, evaluation page, manual intake, and JSON import prioritize cold-user guidance, consolidated ambient status, action-first review, baseline-gated actions, claim-safe media previews, internal review language, visible queue counts, plain-language pilot evaluation, and claim-safe action labels.
 
 ## Scripts
 
@@ -126,7 +129,7 @@ The scoring output is a calibrated routing score, not a legal conclusion. V4 mus
 - Live demo: https://brandarmor.asynchronope.my.id/
 - Vercel alias: https://brandarmor.vercel.app/
 - GitHub: https://github.com/bO-05/brandarmor
-- Last local verification: `npm run typecheck`, `BPOM_DISABLE_API=1 npm test` (`181/181`), `npm run build`, and HTTP smoke checks for `/`, `/demo`, `/listings/new`, `/listings/import`, `/review`, `/evaluation`, and a linked listing detail page.
+- Last local verification: `npm run typecheck`, `BPOM_DISABLE_API=1 npm test` (`195/195`), `npm run build`, React Doctor `100/100`, five consecutive staged-demo/report runs, and HTTP smoke checks for `/`, `/demo`, `/listings/new`, `/listings/import`, `/review`, `/evaluation`, a linked listing detail page, and both report formats.
 - Last deployed verification: public domains returned `demoReady: true`, 2 brands, 2 products, 7 listings, stable seeded IDs including `seed0000000060`, and hydrated listing detail pages without `Listing not found`.
 - Do not set `BRANDARMOR_DATA_DIR=.brandarmor-data/` in Vercel. The app now ignores relative data-dir overrides in serverless mode and writes to the platform temp directory (`/tmp/.brandarmor-data` on Vercel).
 - Serverless empty stores auto-seed deterministic demo data for hackathon reliability. This is still ephemeral demo storage, not production persistence.

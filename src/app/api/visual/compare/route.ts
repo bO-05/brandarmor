@@ -4,6 +4,9 @@ import { computeScore } from "@/domain/scoring";
 import { inferVisualMatch } from "@/lib/visual-compare";
 import { createEvidence, createScore, createVisualMatch, enrichScoreReasons, getLatestOcrArtifact, getLatestRegulatoryCheck, getListing, getProduct, getVisualMatches } from "@/persistence/store";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   return NextResponse.json(getVisualMatches(searchParams.get("listingId") ?? undefined));
@@ -28,7 +31,7 @@ export async function POST(request: Request) {
     });
     const score = product ? createScore({ ...enrichScoreReasons(computeScore(listing, product, getLatestOcrArtifact(listing.id), getLatestRegulatoryCheck(listing.id), visual), listing.id), listingId: listing.id }) : null;
     return NextResponse.json({ visualMatch: visual, score }, { status: 201 });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Visual comparison could not complete. The case will retain an explicit unavailable state." }, { status: 500 });
   }
 }
