@@ -24,9 +24,9 @@
 ### Verification
 
 - TypeScript typecheck passed.
-- Vitest passed: 195/195 tests with BPOM_DISABLE_API=1.
+- Vitest passed: 197/197 tests with BPOM_DISABLE_API=1.
 - Production build passed.
-- React Doctor v0.7.8 passed: 100/100.
+- React Doctor v0.8.1 passed: 100/100.
 - Five consecutive local demo runs completed under 1.4 seconds each with core evidence, mock judge fallback, JSON export, and PDF export all successful.
 
 ### Not included

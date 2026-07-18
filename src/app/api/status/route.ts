@@ -22,7 +22,7 @@ export async function GET() {
       reviewDecisionCount: reviews.length,
     };
 
-    return NextResponse.json(status);
+    return NextResponse.json(status, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

@@ -36,7 +36,7 @@ export function Sidebar() {
           evaluationCaseCount: 0,
           reviewDecisionCount: 0,
           currentPath: pathname,
-        });
+        }, { init: { cache: "no-store" } });
         if (cancelled) return;
 
         setStatus({
@@ -48,8 +48,13 @@ export function Sidebar() {
       }
     }
 
-    loadStatus();
-    return () => { cancelled = true; };
+    const refreshStatus = () => { void loadStatus(); };
+    refreshStatus();
+    window.addEventListener("brandarmor:status-changed", refreshStatus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("brandarmor:status-changed", refreshStatus);
+    };
   }, [pathname]);
 
   const groups = status

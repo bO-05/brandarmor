@@ -51,9 +51,9 @@ Do not claim:
 - Human review decisions.
 - Guided dashboard/status start, single guided demo action, consolidated ambient status endpoint, task-oriented empty states, action-first listing workspace, baseline-gated listing pipeline, case brief, claim-safe media preview, baseline explanation copy, inline review decision panel on listing detail, confirmation-based internal label saves, post-review next-step guidance, responsive app shell, internal review queue counts, touch-accessible glossary help, plain-language evaluation readout, grouped manual intake, and sample-assisted JSON import.
 - Route pages use server `page.tsx` wrappers for metadata and colocated `page-client.tsx` files for interactive UI where needed.
-- React Doctor v0.7.8 reports `No issues found` and `100/100` in the current local verification.
+- React Doctor v0.8.1 reports `No issues found` and `100/100` in the current local verification.
 - Evaluation metrics and test coverage.
-- `195/195` automated tests passing in the v0.5.0 local verification, plus a successful JSON/PDF report route test and five local staged-demo/report runs.
+- `197/197` automated tests passing in the v0.5.0 local verification, plus a successful JSON/PDF report route test and five local staged-demo/report runs.
 - Real BPOM-backed Somethinc and Gloglowing product baselines in demo seed data.
 - Vercel/serverless demo auto-seeding for empty `/tmp` stores.
 - Deterministic seeded demo IDs, including stable listing deep links such as `/listings/seed0000000060`.

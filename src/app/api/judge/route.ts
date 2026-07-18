@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { judgeRequestSchema } from "@/domain/schemas";
 import { runLlmJudge } from "@/lib/llm-judge";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import { createLlmJudgeAssessment, getEvidence, getLatestLlmJudgeAssessment, getLatestOcrArtifact, getLatestRegulatoryCheck, getLatestVisualMatch, getListing, getLlmJudgeAssessments, getProduct, getScore } from "@/persistence/store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function GET(request: Request) {
+  ensureDemoSeeded();
   const { searchParams } = new URL(request.url);
   const listingId = searchParams.get("listingId");
   if (listingId && searchParams.get("latest") === "1") return NextResponse.json(getLatestLlmJudgeAssessment(listingId) ?? null);
@@ -15,6 +17,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    ensureDemoSeeded();
     const parsed = judgeRequestSchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
     const listing = getListing(parsed.data.listingId);

@@ -98,9 +98,9 @@ This release fixes the dashboard/evaluation count contradiction by making the pi
 Verification for this checkpoint:
 
 - `npm run typecheck`: passing.
-- `BPOM_DISABLE_API=1 npm test`: `195/195` tests passing.
+- `BPOM_DISABLE_API=1 npm test`: `197/197` tests passing.
 - `npm run build`: passing.
-- React Doctor v0.7.8: `No issues found`, `100/100` from the repository root.
+- React Doctor v0.8.1: `No issues found`, `100/100` from the repository root.
 - Five local staged demo runs completed with JSON and PDF report output; all were under 1.4 seconds using the intentionally labeled mock provider path.
 
 The branch is a release candidate only. No merge, deployment, external report, marketplace submission, or enforcement action occurred.

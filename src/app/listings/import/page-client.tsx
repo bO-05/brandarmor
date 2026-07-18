@@ -21,6 +21,29 @@ export default function ImportListingsPage() {
   const [syntaxError, setSyntaxError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Array<{ line: number; field: string; message: string }>>([]);
   const [loading, setLoading] = useState(false);
+  const [sampleLoading, setSampleLoading] = useState(false);
+
+  async function loadSample() {
+    setSampleLoading(true);
+    try {
+      const response = await fetch("/api/products", { cache: "no-store" });
+      const products = await response.json();
+      const sample = JSON.parse(SAMPLE_LISTING_IMPORT_JSON) as Array<Record<string, unknown>>;
+      const productId = Array.isArray(products) ? products[0]?.id : null;
+      if (productId && sample[0]) sample[0].productId = productId;
+      setJsonInput(JSON.stringify(sample, null, 2));
+      setSyntaxError(null);
+      setErrors([]);
+      if (!productId) toast.message("Loaded an importable sample without a linked baseline.");
+    } catch {
+      setJsonInput(SAMPLE_LISTING_IMPORT_JSON);
+      setSyntaxError(null);
+      setErrors([]);
+      toast.message("Loaded a sample without a linked baseline because products are unavailable.");
+    } finally {
+      setSampleLoading(false);
+    }
+  }
 
   async function handleImport() {
     const nextSyntaxError = validateJsonInput(jsonInput);
@@ -58,14 +81,11 @@ export default function ImportListingsPage() {
           <label htmlFor="listing-import-json" className="text-sm font-semibold">JSON records</label>
           <button
             type="button"
-            onClick={() => {
-              setJsonInput(SAMPLE_LISTING_IMPORT_JSON);
-              setSyntaxError(null);
-              setErrors([]);
-            }}
-            className="inline-flex min-h-9 items-center justify-center rounded-md bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground"
+            onClick={loadSample}
+            disabled={sampleLoading}
+            className="inline-flex min-h-9 items-center justify-center rounded-md bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground disabled:opacity-60"
           >
-            Load sample JSON
+            {sampleLoading ? "Loading sample..." : "Load sample JSON"}
           </button>
         </div>
         <textarea id="listing-import-json" value={jsonInput} onChange={e => {
