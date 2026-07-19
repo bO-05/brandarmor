@@ -676,12 +676,13 @@ describe("selectEvaluationPlainLanguageSummary", () => {
 });
 
 describe("SAMPLE_LISTING_IMPORT_JSON", () => {
-  it("contains a productId field so imports can demonstrate baseline linking", () => {
+  it("contains an importable baseline-neutral template without a fake product ID", () => {
     expect(typeof uiUx.SAMPLE_LISTING_IMPORT_JSON).toBe("string");
 
     const parsed = JSON.parse(uiUx.SAMPLE_LISTING_IMPORT_JSON);
     expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed[0].productId).toBe("replace-with-product-baseline-id");
+    expect(parsed[0].productId).toBeUndefined();
+    expect(JSON.stringify(parsed)).not.toContain("replace-with-product-baseline-id");
     expect(parsed[0].sourceType).toBe("json_import");
   });
 });

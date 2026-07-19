@@ -88,9 +88,9 @@ export default function ReviewPage() {
     dispatch({ type: "load_started" });
     try {
       const [decisionsResult, listingsResult, scoresResult] = await Promise.all([
-        fetchJsonArray<ReviewItem>("/api/review"),
-        fetchJsonArray<ListingSummary>("/api/listings"),
-        fetchJsonArray<ScoreSummary>("/api/scoring"),
+        fetchJsonArray<ReviewItem>("/api/review", { init: { cache: "no-store" } }),
+        fetchJsonArray<ListingSummary>("/api/listings", { init: { cache: "no-store" } }),
+        fetchJsonArray<ScoreSummary>("/api/scoring", { init: { cache: "no-store" } }),
       ]);
       const listingsById = new Map(listingsResult.data.map((listing) => [listing.id, listing]));
       const scoresByListingId = new Map(scoresResult.data.map((score) => [score.listingId, score]));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useReducer } from "react";
+import { useMemo, useReducer, useRef } from "react";
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Loader2, Sparkles } from "lucide-react";
 import type { ReviewDecision, ReviewStatus } from "@/domain/types";
 import { getAllowedTransitions, isTerminal } from "@/domain/review";
@@ -89,6 +89,7 @@ export function ReviewDecisionPanel({
   className?: string;
 }) {
   const [state, dispatch] = useReducer(reviewPanelReducer, initialReviewPanelState);
+  const saveInFlight = useRef(false);
   const { expanded, selectedStatus, pendingStatus, saving, error } = state;
 
   const allowedTransitions = useMemo(() => decision ? getAllowedTransitions(decision.status) : [], [decision]);
@@ -107,7 +108,8 @@ export function ReviewDecisionPanel({
   const terminal = decision ? isTerminal(decision.status) : false;
 
   async function saveStatus() {
-    if (!pendingStatus) return;
+    if (!pendingStatus || saveInFlight.current) return;
+    saveInFlight.current = true;
     dispatch({ type: "save_started" });
     try {
       const res = await fetch("/api/review", {
@@ -117,10 +119,13 @@ export function ReviewDecisionPanel({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Review label could not be saved");
+      window.dispatchEvent(new Event("brandarmor:status-changed"));
       await onSaved?.(pendingStatus);
       dispatch({ type: "save_finished" });
     } catch (e) {
       dispatch({ type: "save_failed", error: (e as Error).message });
+    } finally {
+      saveInFlight.current = false;
     }
   }
 

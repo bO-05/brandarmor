@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getProducts, createProduct } from "@/persistence/store";
 import { insertProductSchema } from "@/domain/schemas";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 
 export async function GET(request: Request) {
   try {
+    ensureDemoSeeded();
     const { searchParams } = new URL(request.url);
     const brandId = searchParams.get("brandId");
     const products = getProducts(brandId ?? undefined);

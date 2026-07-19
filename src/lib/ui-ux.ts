@@ -265,7 +265,6 @@ export interface ListingNextAction {
 
 export const SAMPLE_LISTING_IMPORT_JSON = JSON.stringify([
   {
-    productId: "replace-with-product-baseline-id",
     title: "Somethinc Calm Down Toner 100ml Original BPOM Murah",
     description: "Candidate listing captured for evidence-backed review.",
     price: 49000,

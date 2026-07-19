@@ -2,18 +2,20 @@ import { NextResponse } from "next/server";
 import { getReviewDecisions, getReviewDecision, createReviewDecision, updateReviewDecision } from "@/persistence/store";
 import { insertReviewDecisionSchema } from "@/domain/schemas";
 import { isValidTransition, getAllowedTransitions } from "@/domain/review";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 
 export async function GET(request: Request) {
   try {
+    ensureDemoSeeded();
     const { searchParams } = new URL(request.url);
     const listingId = searchParams.get("listingId");
     if (listingId) {
       const decision = getReviewDecision(listingId);
       if (!decision) return NextResponse.json({ error: "Review decision not found" }, { status: 404 });
-      return NextResponse.json(decision);
+      return NextResponse.json(decision, { headers: { "Cache-Control": "no-store" } });
     }
     const decisions = getReviewDecisions();
-    return NextResponse.json(decisions);
+    return NextResponse.json(decisions, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
@@ -35,6 +37,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    ensureDemoSeeded();
     const body = await request.json();
     const { listingId, status, reviewer, notes } = body;
     if (!listingId || !status) {
