@@ -1,4 +1,6 @@
+import React from "react";
 import BrandsPage from "./page-client";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import { getBrands } from "@/persistence/store";
 
 export const metadata = {
@@ -7,5 +9,6 @@ export const metadata = {
 };
 
 export default function Page() {
-  return <BrandsPage initialBrands={getBrands()} />;
+  ensureDemoSeeded();
+  return React.createElement(BrandsPage, { initialBrands: getBrands() });
 }

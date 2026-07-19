@@ -4,6 +4,7 @@ import { useEffect, useReducer } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle, HelpCircle, PlayCircle, Plus, Upload, XCircle } from "lucide-react";
+import { useAmbientStatus } from "@/components/AmbientStatusProvider";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
 import { ReviewDecisionPanel } from "@/components/ReviewDecisionPanel";
 import { ReviewNextSteps } from "@/components/ReviewNextSteps";
@@ -119,7 +120,18 @@ export default function ReviewPage() {
 
   useEffect(() => { load(); }, []);
 
-  const queueSummary = summarizeReviewQueue(items.map((item) => item.status));
+  const ambient = useAmbientStatus();
+  const queueSummary = ambient
+    ? {
+        total: ambient.reviewDecisionCount,
+        pending: ambient.pendingReviewCount,
+        labeled: Math.max(0, ambient.reviewDecisionCount - ambient.pendingReviewCount),
+        headline: `${ambient.reviewDecisionCount} item${ambient.reviewDecisionCount === 1 ? "" : "s"} / ${ambient.pendingReviewCount} pending / ${Math.max(0, ambient.reviewDecisionCount - ambient.pendingReviewCount)} labeled`,
+        detail: ambient.reviewDecisionCount === 0
+          ? "No internal review items are available yet."
+          : "This is the current internal review queue. Labels remain workflow state and do not trigger external action.",
+      }
+    : summarizeReviewQueue(items.map((item) => item.status));
 
   if (loading) return <div className="max-w-5xl mx-auto"><h1 className="text-2xl font-bold mb-6">Review Queue</h1><p>Loading internal review items&hellip;</p></div>;
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AmbientStatusProvider } from "@/components/AmbientStatusProvider";
 import { Sidebar } from "@/components/Sidebar";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -30,10 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="bg-background text-foreground antialiased">
-        <div className="min-h-screen md:flex md:h-screen md:overflow-hidden">
-          <Sidebar />
-          <main className="min-w-0 flex-1 p-4 md:overflow-y-auto md:p-6">{children}</main>
-        </div>
+        <AmbientStatusProvider>
+          <div className="min-h-screen md:flex md:h-screen md:overflow-hidden">
+            <Sidebar />
+            <main className="min-w-0 flex-1 p-4 md:overflow-y-auto md:p-6">{children}</main>
+          </div>
+        </AmbientStatusProvider>
         <Toaster position="bottom-right" />
         {process.env.VERCEL_ENV === "production" ? <SpeedInsights /> : null}
       </body>

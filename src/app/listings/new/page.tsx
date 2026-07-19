@@ -11,6 +11,7 @@ export default function NewListingPage() {
   const [products, setProducts] = useState<Array<{ id: string; name: string; category?: string; bpomNie?: string | null }>>([]);
   const [loading, setLoading] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   function set(field: string, value: string) { setForm(prev => ({ ...prev, [field]: value })); }
 
@@ -25,6 +26,10 @@ export default function NewListingPage() {
     return parseIdrPrice(value) ? null : "Enter a positive IDR amount, for example 150000 or 150.000.";
   }
 
+  function validateTitle(value: string): string | null {
+    return value.trim() ? null : "Listing title is required.";
+  }
+
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
@@ -34,16 +39,18 @@ export default function NewListingPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const nextTitleError = validateTitle(form.title);
     const nextPriceError = validatePrice(form.price);
+    setTitleError(nextTitleError);
     setPriceError(nextPriceError);
-    if (nextPriceError) return;
+    if (nextTitleError || nextPriceError) return;
     setLoading(true);
     try {
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: form.title || null,
+          title: form.title.trim(),
           description: form.description || null,
           price: form.price ? parseIdrPrice(form.price) : null,
           marketplace: form.marketplace || null,
@@ -80,6 +87,8 @@ export default function NewListingPage() {
     const id = `listing-${k}`;
     const errorId = `${id}-error`;
     const isPrice = k === "price";
+    const isTitle = k === "title";
+    const fieldError = isPrice ? priceError : isTitle ? titleError : null;
 
     return (
       <div key={k}>
@@ -94,14 +103,19 @@ export default function NewListingPage() {
               onChange={e => {
                 set(k, e.target.value);
                 if (isPrice) setPriceError(validatePrice(e.target.value));
+                if (isTitle) setTitleError(validateTitle(e.target.value));
               }}
-              onBlur={() => isPrice && setPriceError(validatePrice(form.price))}
+              onBlur={() => {
+                if (isPrice) setPriceError(validatePrice(form.price));
+                if (isTitle) setTitleError(validateTitle(form.title));
+              }}
               placeholder={placeholder}
-              aria-invalid={isPrice && Boolean(priceError)}
-              aria-describedby={isPrice && priceError ? errorId : undefined}
+              required={isTitle}
+              aria-invalid={Boolean(fieldError)}
+              aria-describedby={fieldError ? errorId : undefined}
               className="w-full rounded-md border border-border bg-background px-3 py-2"
             />}
-        {isPrice && priceError && <p id={errorId} className="mt-1 text-xs text-destructive">{priceError}</p>}
+        {fieldError && <p id={errorId} role="alert" className="mt-1 text-xs text-destructive">{fieldError}</p>}
       </div>
     );
   }
@@ -109,7 +123,7 @@ export default function NewListingPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">New Listing</h1>
-      <form onSubmit={handleSubmit} className="surface-card rounded-lg p-6 space-y-3">
+      <form noValidate onSubmit={handleSubmit} className="surface-card rounded-lg p-6 space-y-3">
         <div>
           <label htmlFor="listing-product-baseline" className="mb-1 block text-sm font-medium">Product Baseline</label>
           <select id="listing-product-baseline" name="productId" value={form.productId} onChange={(e) => set("productId", e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2">

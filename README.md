@@ -91,7 +91,7 @@ On Vercel the data dir (`/tmp`) is ephemeral and per-instance, so a fresh instan
 ## Current Verification
 
 - App version: `0.5.0`.
-- Automated tests: `197/197` passing with `BPOM_DISABLE_API=1`.
+- Automated tests: `202/202` passing with `BPOM_DISABLE_API=1`.
 - Build: `npm run build` passes with the JSON/PDF report route and all dynamic evidence routes.
 - Local smoke verification: dashboard reports 50 authoritative pilot fixtures; staged demo core, mock judge fallback, JSON report, and PDF report return successfully.
 - Public deployed demo verification is still required after this branch is merged and deployed; no deployment was performed for this release candidate.
@@ -129,7 +129,7 @@ The scoring output is a calibrated routing score, not a legal conclusion. V4 mus
 - Live demo: https://brandarmor.asynchronope.my.id/
 - Vercel alias: https://brandarmor.vercel.app/
 - GitHub: https://github.com/bO-05/brandarmor
-- Last local verification: `npm run typecheck`, `BPOM_DISABLE_API=1 npm test` (`197/197`), `npm run build`, React Doctor `100/100`, five consecutive staged-demo/report runs, and HTTP smoke checks for `/`, `/demo`, `/listings/new`, `/listings/import`, `/review`, `/evaluation`, a linked listing detail page, and both report formats.
+- Last local verification: `npm run typecheck`, `BPOM_DISABLE_API=1 npm test` (`202/202`), `npm run build`, React Doctor `100/100`, five consecutive staged-demo/report runs, and HTTP smoke checks for `/`, `/demo`, `/listings/new`, `/listings/import`, `/review`, `/evaluation`, a linked listing detail page, and both report formats.
 - Last deployed verification: public domains returned `demoReady: true`, 2 brands, 2 products, 7 listings, stable seeded IDs including `seed0000000060`, and hydrated listing detail pages without `Listing not found`.
 - Do not set `BRANDARMOR_DATA_DIR=.brandarmor-data/` in Vercel. The app now ignores relative data-dir overrides in serverless mode and writes to the platform temp directory (`/tmp/.brandarmor-data` on Vercel).
 - Serverless empty stores auto-seed deterministic demo data for hackathon reliability. This is still ephemeral demo storage, not production persistence.

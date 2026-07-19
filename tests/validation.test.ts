@@ -50,6 +50,14 @@ describe("insertListingSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+  it("rejects an empty listing title", () => {
+    const result = insertListingSchema.safeParse({
+      title: "   ",
+      sourceType: "manual",
+      observedAt: new Date().toISOString(),
+    });
+    expect(result.success).toBe(false);
+  });
   it("rejects invalid sourceType", () => {
     const result = insertListingSchema.safeParse({
       title: "Test",
