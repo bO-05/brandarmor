@@ -53,7 +53,7 @@ Do not claim:
 - Route pages use server `page.tsx` wrappers for metadata and colocated `page-client.tsx` files for interactive UI where needed.
 - React Doctor v0.8.1 reports `No issues found` and `100/100` in the current local verification.
 - Evaluation metrics and test coverage.
-- `200/200` automated tests passing in the v0.5.0 local verification, plus a successful JSON/PDF report route test and five local staged-demo/report runs.
+- `202/202` automated tests passing in the v0.5.0 local verification, plus a successful JSON/PDF report route test and five local staged-demo/report runs.
 - Real BPOM-backed Somethinc and Gloglowing product baselines in demo seed data.
 - Vercel/serverless demo auto-seeding for empty `/tmp` stores.
 - Deterministic seeded demo IDs, including stable listing deep links such as `/listings/seed0000000060`.

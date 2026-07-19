@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { fetchJsonObject } from "@/lib/api-client";
 import type { AmbientStatusInput } from "@/lib/ui-ux";
 
@@ -30,12 +30,16 @@ const AmbientStatusContext = createContext<AmbientStatusContextValue>({
 
 export function AmbientStatusProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AmbientStatusInput | null>(null);
+  const requestVersion = useRef(0);
 
   const refreshStatus = useCallback(async () => {
+    const requestToken = ++requestVersion.current;
     const result = await fetchJsonObject<AmbientStatusInput>("/api/status", fallbackStatus, {
       init: { cache: "no-store" },
     });
-    if (!result.error) setStatus(result.data);
+    if (!result.error && requestToken === requestVersion.current) {
+      setStatus(result.data);
+    }
   }, []);
 
   useEffect(() => {
@@ -43,6 +47,7 @@ export function AmbientStatusProvider({ children }: { children: ReactNode }) {
     const handleStatusChange = (event: Event) => {
       const patch = (event as CustomEvent<AmbientStatusPatch>).detail;
       if (patch && Object.keys(patch).length > 0) {
+        requestVersion.current += 1;
         setStatus((current) => ({ ...(current ?? fallbackStatus), ...patch }));
         return;
       }

@@ -44,9 +44,15 @@ export function parseJsonImport(jsonInput: string): ImportResult {
       errors.push({ line: i + 1, field: "root", message: "Record is not an object", raw });
       continue;
     }
+    const normalizedTitle = typeof raw.title === "string" ? raw.title.trim() : "";
+    if (!normalizedTitle) {
+      errors.push({ line: i + 1, field: "title", message: "Listing title is required", raw });
+      continue;
+    }
+
     const price = parsePrice(raw.price);
     const listing: InsertListing = {
-      title: raw.title ?? "",
+      title: normalizedTitle,
       description: raw.description ?? null,
       price: price ?? null,
       currency: (raw.currency ?? "IDR").toUpperCase(),

@@ -15,6 +15,26 @@ describe("parseJsonImport", () => {
     expect(result.listings[0].rawSource).toEqual({ title: "Test Product", price: 100000, marketplace: "tokopedia" });
   });
 
+  it("trims imported titles before storing the listing", () => {
+    const result = parseJsonImport(JSON.stringify({
+      title: "  Trimmed listing title  ",
+      sellerName: "Seller",
+    }));
+
+    expect(result.success).toBe(1);
+    expect(result.listings[0].title).toBe("Trimmed listing title");
+  });
+
+  it("rejects an empty or missing title before combined-field validation", () => {
+    const result = parseJsonImport(JSON.stringify([
+      { title: "   ", sellerName: "Seller" },
+      { listingUrl: "https://example.com/listing" },
+    ]));
+
+    expect(result.failed).toBe(2);
+    expect(result.errors.every((error) => error.field === "title")).toBe(true);
+  });
+
   it("parses an array of records", () => {
     const result = parseJsonImport(JSON.stringify([
       { title: "Product A", price: 50000, sellerName: "SellerA" },
@@ -30,7 +50,7 @@ describe("parseJsonImport", () => {
       { price: 50000 },
     ]));
     expect(result.failed).toBe(1);
-    expect(result.errors[0].field).toBe("general");
+    expect(result.errors[0].field).toBe("title");
   });
 
   it("handles invalid JSON gracefully", () => {
