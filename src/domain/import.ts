@@ -46,7 +46,7 @@ export function parseJsonImport(jsonInput: string): ImportResult {
     }
     const price = parsePrice(raw.price);
     const listing: InsertListing = {
-      title: raw.title ?? null,
+      title: raw.title ?? "",
       description: raw.description ?? null,
       price: price ?? null,
       currency: (raw.currency ?? "IDR").toUpperCase(),

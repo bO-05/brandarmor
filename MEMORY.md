@@ -15,10 +15,27 @@ What was rejected or deferred:
 A real OCR claim without a rights-cleared public image, real vision embeddings, fabricated evaluation fixtures, a currency cost estimate without a verified rate card and durable usage ledger, deployment, merge, force-push, external reporting, enforcement, and production infrastructure changes.
 
 Verification:
-`npm run typecheck`, `BPOM_DISABLE_API=1 npm test` with 197/197 passing, `npm run build`, React Doctor v0.8.1 at 100/100, local health endpoint smoke checks, PDF `%PDF` verification, and five staged demo/report runs under 1.4 seconds using the labeled mock-provider path.
+`npm run typecheck`, `BPOM_DISABLE_API=1 npm test` with 200/200 passing, `npm run build`, React Doctor v0.8.1 at 100/100, local health endpoint smoke checks, PDF `%PDF` verification, and five staged demo/report runs under 1.4 seconds using the labeled mock-provider path.
 
 Next:
 Approve and review the feature pull request, deploy only after review, repeat public smoke tests, collect rights-cleared flagship imagery for real OCR, then add provenance-documented evaluation cases rather than inflating the pilot fixture count.
+
+## 2026-07-19 - Post-Merge QA Remediation
+
+What was decided:
+The app shell now uses a single ambient-status provider so the sidebar, workflow banner, dashboard, and review queue consume the same refreshed status snapshot after a review mutation. Cold serverless reads seed before rendering Brands or processing judge, review, product, listing, status, and report requests.
+
+Why:
+Live QA found a split-brain count presentation, cold-store Brands empty state, judge 404 risk across serverless instances, blank listing submissions, and a missing legacy favicon. These are trust-breaking workflow defects, not cosmetic issues.
+
+What was shipped:
+A shared ambient-status client provider, no-store review/status reads, post-save refresh events, duplicate save protection, server/client title validation, Brands seeding, dynamic import sample baseline IDs, root favicon.ico, and QA regression tests.
+
+Verification:
+`npm run typecheck`, `BPOM_DISABLE_API=1 npm test` with 200/200 passing, `npm run build`, React Doctor v0.8.1 at 100/100, plus local HTTP checks for root favicon, seeded Brands, blank listing rejection, demo core, and judge completion.
+
+Next:
+Review and merge the new QA hotfix pull request only after its CI/review passes, then rerun the live end-to-end QA report against the deployed main branch.
 
 ## 2026-05-31 - Deployed Demo Reliability
 

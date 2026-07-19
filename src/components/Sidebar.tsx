@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Shield, Building2, Package, ClipboardCheck, BarChart3, Search, PlayCircle } from "lucide-react";
-import { fetchJsonObject } from "@/lib/api-client";
-import { decorateSidebarNavigationGroups, getSidebarNavigationGroups, type AmbientStatusInput } from "@/lib/ui-ux";
+import { useAmbientStatus } from "@/components/AmbientStatusProvider";
+import { decorateSidebarNavigationGroups, getSidebarNavigationGroups } from "@/lib/ui-ux";
 
 const iconByHref = {
   "/": Shield,
@@ -20,45 +19,10 @@ const iconByHref = {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [status, setStatus] = useState<AmbientStatusInput | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadStatus() {
-      try {
-        const ambient = await fetchJsonObject<AmbientStatusInput>("/api/status", {
-          listingCount: 0,
-          unlinkedListingCount: 0,
-          unscoredListingCount: 0,
-          pendingReviewCount: 0,
-          highRiskScoreCount: 0,
-          evaluationCaseCount: 0,
-          reviewDecisionCount: 0,
-          currentPath: pathname,
-        }, { init: { cache: "no-store" } });
-        if (cancelled) return;
-
-        setStatus({
-          ...ambient.data,
-          currentPath: pathname,
-        });
-      } catch {
-        setStatus(null);
-      }
-    }
-
-    const refreshStatus = () => { void loadStatus(); };
-    refreshStatus();
-    window.addEventListener("brandarmor:status-changed", refreshStatus);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("brandarmor:status-changed", refreshStatus);
-    };
-  }, [pathname]);
+  const status = useAmbientStatus();
 
   const groups = status
-    ? decorateSidebarNavigationGroups(getSidebarNavigationGroups(), status)
+    ? decorateSidebarNavigationGroups(getSidebarNavigationGroups(), { ...status, currentPath: pathname })
     : getSidebarNavigationGroups();
 
   return (

@@ -18,6 +18,7 @@ import {
   Search,
   Shield,
 } from "lucide-react";
+import { useAmbientStatus } from "@/components/AmbientStatusProvider";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
 import { IntegrationLedger } from "@/components/IntegrationLedger";
 import { selectAmbientStatus } from "@/lib/ui-ux";
@@ -55,7 +56,16 @@ const setupActions = [
 ];
 
 export default function DashboardPage({ initialData }: { initialData: DashboardData }) {
-  const data = initialData;
+  const ambient = useAmbientStatus();
+  const data = ambient ? {
+    ...initialData,
+    listings: ambient.listingCount,
+    unlinkedListings: ambient.unlinkedListingCount,
+    unscoredListings: ambient.unscoredListingCount,
+    pendingReviews: ambient.pendingReviewCount,
+    highRisk: ambient.highRiskScoreCount,
+    reviewDecisions: ambient.reviewDecisionCount,
+  } : initialData;
   const [error, setError] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
 

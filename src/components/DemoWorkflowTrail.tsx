@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { fetchJsonObject } from "@/lib/api-client";
-import { selectAmbientStatus, type AmbientStatus, type AmbientStatusInput } from "@/lib/ui-ux";
+import { useAmbientStatus } from "@/components/AmbientStatusProvider";
+import { selectAmbientStatus } from "@/lib/ui-ux";
 
 const trail = [
   { href: "/", label: "Start status" },
@@ -21,42 +20,8 @@ function isActive(pathname: string, href: string): boolean {
 
 export function DemoWorkflowTrail() {
   const pathname = usePathname();
-  const [status, setStatus] = useState<AmbientStatus | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadStatus() {
-      try {
-        const ambient = await fetchJsonObject<AmbientStatusInput>("/api/status", {
-          listingCount: 0,
-          unlinkedListingCount: 0,
-          unscoredListingCount: 0,
-          pendingReviewCount: 0,
-          highRiskScoreCount: 0,
-          evaluationCaseCount: 0,
-          reviewDecisionCount: 0,
-          currentPath: pathname,
-        }, { init: { cache: "no-store" } });
-        if (cancelled) return;
-
-        setStatus(selectAmbientStatus({
-          ...ambient.data,
-          currentPath: pathname,
-        }));
-      } catch {
-        setStatus(null);
-      }
-    }
-
-    const refreshStatus = () => { void loadStatus(); };
-    refreshStatus();
-    window.addEventListener("brandarmor:status-changed", refreshStatus);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("brandarmor:status-changed", refreshStatus);
-    };
-  }, [pathname]);
+  const ambient = useAmbientStatus();
+  const status = ambient ? selectAmbientStatus({ ...ambient, currentPath: pathname }) : null;
 
   return (
     <nav aria-label="Demo workflow" className="mb-5 rounded-lg border border-border bg-muted/40 px-3 py-2">

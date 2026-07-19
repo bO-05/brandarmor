@@ -5,6 +5,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createBrand, createListing, createProduct, getListing, resetDataDir, setDataDir } from "../src/persistence/store";
 
+function postRequest(body: unknown): Request {
+  return new Request("http://localhost/api/listings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 function patchRequest(body: unknown): Request {
   return new Request("http://localhost/api/listings", {
     method: "PATCH",
@@ -78,6 +86,22 @@ describe("PATCH /api/listings", () => {
     expect(typeof patch).toBe("function");
 
     const response = await patch!(patchRequest({ id: "", productId: "" }));
+    const json = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(json.error).toBe("Validation failed");
+  });
+
+  it("rejects a blank manual listing submission", async () => {
+    const route = await import("../src/app/api/listings/route");
+    const post = (route as { POST?: (request: Request) => Promise<Response> }).POST;
+    expect(typeof post).toBe("function");
+
+    const response = await post!(postRequest({
+      title: "",
+      sourceType: "manual",
+      observedAt: "2026-07-19T00:00:00.000Z",
+    }));
     const json = await response.json();
 
     expect(response.status).toBe(400);

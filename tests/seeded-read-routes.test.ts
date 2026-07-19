@@ -40,4 +40,11 @@ describe("seeded demo read routes", () => {
     expect((await listingsResponse.json()).some((listing: { id: string }) => listing.id === "seed0000000060")).toBe(true);
     expect(reportResponse.status).toBe(200);
   });
+
+  it("seeds Brands before rendering its initial server data", async () => {
+    const brandsPage = await import("../src/app/brands/page");
+    const element = brandsPage.default() as unknown as { props: { initialBrands: unknown[] } };
+
+    expect(element.props.initialBrands.length).toBeGreaterThan(0);
+  });
 });

@@ -39,7 +39,7 @@ export type InsertProduct = z.infer<typeof insertProductSchema>;
 
 export const insertListingSchema = z.object({
   productId: z.string().nullable().optional(),
-  title: z.string().nullable().optional(),
+  title: z.string().trim().min(1, "Listing title is required"),
   description: z.string().nullable().optional(),
   price: z.number().nullable().optional(),
   currency: z.string().length(3).nullable().optional().default("IDR"),

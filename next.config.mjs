@@ -5,5 +5,12 @@ export default function nextConfig(phase) {
     // Windows can leave .next/trace locked after a killed or hung build.
     // Keep dev on its own cache so `npm run dev` stays recoverable.
     distDir: process.env.NEXT_DIST_DIR || (phase === PHASE_DEVELOPMENT_SERVER ? ".next-local" : ".next"),
+    async rewrites() {
+      return {
+        beforeFiles: [
+          { source: "/favicon.ico", destination: "/brandarmor-icons/favicon-32.png" },
+        ],
+      };
+    },
   };
 }
