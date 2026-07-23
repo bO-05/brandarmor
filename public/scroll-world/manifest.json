@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "provider": "deterministic-svg-fallback",
+  "aspectRatio": "16:9",
+  "desktopOnly": true,
+  "scenes": [
+    { "id": "marketplace-intake", "title": "Lead intake", "src": "/scroll-world/scene-01.svg", "alt": "A cinematic marketplace intake scene for a suspicious skincare listing lead." },
+    { "id": "product-baseline", "title": "Product baseline", "src": "/scroll-world/scene-02.svg", "alt": "A cinematic product baseline room showing official product truth kept separate from marketplace claims." },
+    { "id": "evidence-lab", "title": "Evidence lab", "src": "/scroll-world/scene-03.svg", "alt": "A cinematic evidence lab scene showing OCR, regulatory, visual, score, and judge records." },
+    { "id": "review-cockpit", "title": "Review cockpit", "src": "/scroll-world/scene-04.svg", "alt": "A cinematic review cockpit showing cited evidence and missing proof for a human reviewer." },
+    { "id": "decision-archive", "title": "Decision archive", "src": "/scroll-world/scene-05.svg", "alt": "A cinematic decision archive showing an internal label and audit trail." }
+  ]
+}

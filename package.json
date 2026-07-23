@@ -13,7 +13,8 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "verify:env": "node scripts/verify-environment.cjs",
-        "verify:core": "node --experimental-strip-types --loader ./tests/loader.js tests/core-workflow-direct-verify.mjs"
+        "verify:core": "node --experimental-strip-types --loader ./tests/loader.js tests/core-workflow-direct-verify.mjs",
+        "generate:scroll-world": "node scripts/generate-scroll-world-assets.mjs"
     },
     "dependencies": {
         "@react-pdf/renderer": "^4.3.0",

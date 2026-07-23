@@ -94,99 +94,156 @@ body {
   background: var(--color-primary);
 }
 
+
 .scroll-world {
+  min-height: 520svh;
   isolation: isolate;
 }
 
-.scroll-world__hero {
-  perspective: 1200px;
-}
-
-.scroll-world__viewport {
-  min-height: 34rem;
+.scroll-world__sticky {
+  position: sticky;
+  top: 0;
+  min-height: 100svh;
   display: grid;
-  place-items: center;
+  gap: 2rem;
+  overflow: hidden;
+  padding: clamp(1.25rem, 3vw, 3rem);
+  background:
+    radial-gradient(circle at 22% 18%, rgb(37 99 235 / 0.24), transparent 32%),
+    radial-gradient(circle at 80% 28%, rgb(168 85 247 / 0.18), transparent 30%),
+    linear-gradient(135deg, #020617 0%, #08111f 52%, #030712 100%);
 }
 
-.scroll-world__stage {
+.scroll-world__copy {
   position: relative;
-  width: min(100%, 36rem);
-  height: min(72svh, 40rem);
+  z-index: 20;
+  max-width: 46rem;
+  align-self: center;
+}
+
+.scroll-world__film {
+  position: absolute;
+  inset: 0;
   transform-style: preserve-3d;
-  animation: scroll-world-flight linear both;
+  perspective: 1500px;
+}
+
+.scroll-world__scene {
+  --scene-index: 0;
+  position: absolute;
+  right: clamp(-7rem, -7vw, -2rem);
+  top: 50%;
+  width: min(68vw, 62rem);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: clamp(1.5rem, 3vw, 3rem);
+  background: #020617;
+  box-shadow: 0 2.25rem 6rem rgb(0 0 0 / 0.45);
+  transform: translate3d(calc(var(--scene-index) * 9rem), calc(-50% + var(--scene-index) * 1.25rem), calc(var(--scene-index) * -13rem)) rotateX(7deg) rotateY(-22deg) rotateZ(calc(-7deg + var(--scene-index) * 3deg));
+  opacity: calc(1 - var(--scene-index) * 0.13);
+  animation: scroll-world-scene-flight linear both;
   animation-timeline: view();
   animation-range: entry 0% exit 100%;
+  animation-delay: calc(var(--scene-index) * -0.13s);
 }
 
-.scroll-world__card {
+.scroll-world__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+}
+
+.scroll-world__caption {
   position: absolute;
-  inset: 8%;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: 2rem;
-  background: rgb(15 23 42 / 0.92);
-  box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.42);
-  transform-style: preserve-3d;
+  inset-inline: 1.25rem;
+  bottom: 1.25rem;
+  max-width: 34rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 1.25rem;
+  background: rgb(2 6 23 / 0.58);
+  padding: 1rem;
+  backdrop-filter: blur(16px);
 }
 
-.scroll-world__card--1 {
-  transform: translate3d(-12%, -7%, 4rem) rotateX(8deg) rotateY(-18deg) rotateZ(-5deg);
-}
-
-.scroll-world__card--2 {
-  transform: translate3d(8%, 3%, 0) rotateX(5deg) rotateY(12deg) rotateZ(4deg);
-}
-
-.scroll-world__card--3 {
-  transform: translate3d(20%, 16%, -5rem) rotateX(-4deg) rotateY(24deg) rotateZ(8deg);
-}
-
-.scroll-world__orbit {
-  position: absolute;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: 999px;
-  transform-style: preserve-3d;
-}
-
-.scroll-world__orbit--one {
-  inset: 3%;
-  transform: rotateX(68deg) rotateZ(-18deg);
-}
-
-.scroll-world__orbit--two {
-  inset: 18%;
-  transform: rotateX(78deg) rotateY(24deg) rotateZ(28deg);
-}
-
-@keyframes scroll-world-flight {
+@keyframes scroll-world-scene-flight {
   0% {
-    transform: translate3d(0, 2rem, 0) rotateX(58deg) rotateY(-22deg) rotateZ(-12deg) scale(0.9);
+    transform: translate3d(calc(var(--scene-index) * 11rem), calc(-46% + var(--scene-index) * 4rem), calc(8rem + var(--scene-index) * -18rem)) rotateX(12deg) rotateY(-32deg) rotateZ(calc(-9deg + var(--scene-index) * 3deg));
   }
-  45% {
-    transform: translate3d(-1rem, -1rem, 5rem) rotateX(26deg) rotateY(14deg) rotateZ(2deg) scale(1.03);
+  42% {
+    transform: translate3d(calc(var(--scene-index) * 3.5rem), calc(-52% + var(--scene-index) * 0.5rem), calc(10rem + var(--scene-index) * -8rem)) rotateX(4deg) rotateY(-13deg) rotateZ(calc(-3deg + var(--scene-index) * 1.5deg));
   }
   100% {
-    transform: translate3d(0, -3rem, 1rem) rotateX(7deg) rotateY(32deg) rotateZ(10deg) scale(1.08);
+    transform: translate3d(calc(var(--scene-index) * -5rem), calc(-55% + var(--scene-index) * -1.8rem), calc(-12rem + var(--scene-index) * 7rem)) rotateX(-3deg) rotateY(18deg) rotateZ(calc(4deg + var(--scene-index) * -1deg));
+  }
+}
+
+@media (max-width: 1023px) {
+  .scroll-world {
+    min-height: auto;
+  }
+
+  .scroll-world__sticky {
+    position: relative;
+    min-height: auto;
+  }
+
+  .scroll-world__film {
+    position: relative;
+    display: grid;
+    gap: 1rem;
+    perspective: none;
+  }
+
+  .scroll-world__scene {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    transform: none;
+    opacity: 1;
+    animation: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scroll-world__stage {
+  .scroll-world,
+  .scroll-world__sticky {
+    min-height: auto;
+  }
+
+  .scroll-world__sticky,
+  .scroll-world__film {
+    position: relative;
+  }
+
+  .scroll-world__film {
+    display: grid;
+    gap: 1rem;
+    perspective: none;
+  }
+
+  .scroll-world__scene {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    transform: none;
+    opacity: 1;
     animation: none;
   }
 }
 
 @supports not (animation-timeline: view()) {
-  .scroll-world__stage {
-    animation: scroll-world-idle 12s var(--ease-in-out) infinite alternate;
+  .scroll-world__scene {
+    animation: scroll-world-idle 14s var(--ease-in-out) infinite alternate;
   }
 
   @keyframes scroll-world-idle {
     from {
-      transform: translate3d(0, 0, 0) rotateX(32deg) rotateY(-14deg) rotateZ(-7deg);
+      transform: translate3d(calc(var(--scene-index) * 8rem), calc(-50% + var(--scene-index) * 1rem), calc(var(--scene-index) * -10rem)) rotateX(8deg) rotateY(-18deg) rotateZ(calc(-5deg + var(--scene-index) * 2deg));
     }
     to {
-      transform: translate3d(0, -1rem, 0) rotateX(14deg) rotateY(18deg) rotateZ(6deg);
+      transform: translate3d(calc(var(--scene-index) * 4rem), calc(-54% + var(--scene-index) * -0.75rem), calc(5rem + var(--scene-index) * -6rem)) rotateX(2deg) rotateY(10deg) rotateZ(calc(2deg + var(--scene-index) * -1deg));
     }
   }
 }

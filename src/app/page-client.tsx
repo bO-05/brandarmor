@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -54,92 +55,87 @@ const scrollWorldScenes = [
     step: "01",
     label: "Lead intake",
     title: "A suspicious skincare listing enters the watch desk.",
-    detail: "BrandArmor treats marketplace records as leads, not conclusions. The listing starts as a routed candidate with source context and visible gaps.",
-    tone: "from-sky-500/25 via-indigo-500/15 to-transparent",
-    artifact: "Marketplace listing",
+    detail: "Marketplace records start as routed leads with source context and visible evidence gaps.",
+    src: "/scroll-world/scene-01.svg",
+    alt: "Cinematic marketplace intake scene for a suspicious skincare listing lead.",
   },
   {
     step: "02",
-    label: "Evidence chain",
-    title: "OCR, regulatory, visual, score, and judge signals attach as cited evidence.",
-    detail: "Each signal stays tied to a record the reviewer can inspect. Mock fallbacks remain labeled, and missing proof stays visible.",
-    tone: "from-violet-500/25 via-fuchsia-500/15 to-transparent",
-    artifact: "Evidence records",
+    label: "Product baseline",
+    title: "Official product truth stays separate from marketplace claims.",
+    detail: "Brand, product, ingredient, packaging, and source metadata provide the comparison baseline.",
+    src: "/scroll-world/scene-02.svg",
+    alt: "Cinematic product baseline scene with official product truth separated from marketplace claims.",
   },
   {
     step: "03",
-    label: "Human review",
-    title: "The case lands with a reviewer for an internal decision.",
-    detail: "Scores and judge output help prioritize attention, while the human label remains the accountable review step.",
-    tone: "from-emerald-500/25 via-teal-500/15 to-transparent",
-    artifact: "Reviewer queue",
+    label: "Evidence lab",
+    title: "Signals attach as cited evidence records.",
+    detail: "OCR, regulatory lookup, visual comparison, score, and judge assessments stay tied to inspectable records.",
+    src: "/scroll-world/scene-03.svg",
+    alt: "Cinematic evidence lab scene with OCR, regulatory, visual, score, and judge records.",
+  },
+  {
+    step: "04",
+    label: "Review cockpit",
+    title: "A reviewer sees what supports routing and what is missing.",
+    detail: "Scores and judge output are advisory; the accountable decision remains a human internal label.",
+    src: "/scroll-world/scene-04.svg",
+    alt: "Cinematic review cockpit scene with cited evidence and missing proof indicators.",
+  },
+  {
+    step: "05",
+    label: "Decision archive",
+    title: "The internal label is saved with an audit trail.",
+    detail: "The result records provenance and reviewer context without implying external enforcement.",
+    src: "/scroll-world/scene-05.svg",
+    alt: "Cinematic decision archive scene with internal label and audit trail records.",
   },
 ];
 
 function ScrollWorldLanding({ hasData, pendingReviews }: { hasData: boolean; pendingReviews: number }) {
   return (
-    <section className="scroll-world mb-8 overflow-hidden rounded-2xl border border-border bg-foreground text-primary-foreground shadow-2xl shadow-foreground/10">
-      <div className="scroll-world__hero relative min-h-[92svh] px-5 py-6 md:px-8 lg:px-10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_10%,rgba(255,255,255,0.2),transparent_32%),radial-gradient(circle_at_80%_18%,rgba(125,211,252,0.22),transparent_28%),linear-gradient(135deg,rgba(59,130,246,0.18),transparent_45%)]" />
-        <div className="relative z-10 grid min-h-[calc(92svh-3rem)] gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/75">
-              <Sparkles className="size-3.5" />
-              Scroll world pilot
-            </div>
-            <h1 className="max-w-3xl text-4xl font-black tracking-tight text-white md:text-6xl lg:text-7xl">
-              Fly through the evidence path before opening the workspace.
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/72 md:text-lg">
-              A scroll-scrubbed landing story for BrandArmor: lead intake, cited evidence, and human review. It routes suspicious marketplace listings for evidence-backed review; it does not automatically confirm counterfeits.
-            </p>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link href={hasData ? "/review" : "/demo"} className="pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-foreground">
-                {hasData ? `Review ${pendingReviews} pending` : "Run guided demo"}
-                <ArrowRight className="size-4" />
-              </Link>
-              <a href="#workspace-status" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white/85 hover:bg-white/10">
-                Continue to dashboard
-                <ArrowDown className="size-4" />
-              </a>
-            </div>
+    <section className="scroll-world mb-8 overflow-hidden rounded-3xl border border-border bg-[#030712] text-primary-foreground shadow-2xl shadow-foreground/10">
+      <div className="scroll-world__sticky">
+        <div className="scroll-world__copy">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/75">
+            <Sparkles className="size-3.5" />
+            Desktop scroll world
           </div>
-          <div className="scroll-world__viewport" aria-hidden="true">
-            <div className="scroll-world__stage">
-              {scrollWorldScenes.map((scene, index) => (
-                <div key={scene.step} className={`scroll-world__card scroll-world__card--${index + 1}`}>
-                  <div className={`absolute inset-0 rounded-[2rem] bg-gradient-to-br ${scene.tone}`} />
-                  <div className="relative z-10 flex h-full flex-col justify-between p-5">
-                    <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-white/60">
-                      <span>{scene.label}</span>
-                      <span>{scene.step}</span>
-                    </div>
-                    <div className="rounded-2xl border border-white/15 bg-black/20 p-4 backdrop-blur">
-                      <p className="text-sm font-semibold text-white/60">{scene.artifact}</p>
-                      <p className="mt-2 text-xl font-black text-white">{scene.title}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div className="scroll-world__orbit scroll-world__orbit--one" />
-              <div className="scroll-world__orbit scroll-world__orbit--two" />
-            </div>
+          <h1 className="max-w-3xl text-4xl font-black tracking-tight text-white md:text-6xl lg:text-7xl">
+            Follow one listing through BrandArmor’s evidence world.
+          </h1>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-white/72 md:text-lg">
+            A cinematic desktop-first landing path for lead intake, product baselines, evidence records, and human review. BrandArmor routes suspicious marketplace listings for evidence-backed review; it does not automatically confirm counterfeits.
+          </p>
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <Link href={hasData ? "/review" : "/demo"} className="pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-foreground">
+              {hasData ? `Review ${pendingReviews} pending` : "Run guided demo"}
+              <ArrowRight className="size-4" />
+            </Link>
+            <a href="#workspace-status" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white/85 hover:bg-white/10">
+              Continue to dashboard
+              <ArrowDown className="size-4" />
+            </a>
           </div>
         </div>
-      </div>
-      <div className="relative z-10 grid border-t border-white/10 bg-black/20 md:grid-cols-3">
-        {scrollWorldScenes.map((scene) => (
-          <article key={scene.step} className="border-white/10 p-5 md:border-r last:md:border-r-0">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/45">{scene.step} / {scene.label}</p>
-            <h2 className="mt-3 text-lg font-bold text-white">{scene.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-white/62">{scene.detail}</p>
-          </article>
-        ))}
+
+        <div className="scroll-world__film" aria-label="BrandArmor evidence review scroll world scenes">
+          {scrollWorldScenes.map((scene, index) => (
+            <article key={scene.step} className="scroll-world__scene" style={{ "--scene-index": index } as React.CSSProperties}>
+              <Image className="scroll-world__image" src={scene.src} alt={scene.alt} width={1600} height={900} priority={index === 0} />
+              <div className="scroll-world__caption">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/55">{scene.step} / {scene.label}</p>
+                <h2 className="mt-2 text-xl font-black text-white md:text-2xl">{scene.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-white/68">{scene.detail}</p>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
-
 const setupActions = [
   { label: "Brand baselines", detail: "Manage official product truth.", href: "/brands", icon: Building2 },
   { label: "Discover candidates", detail: "Find leads without treating search as proof.", href: "/discovery", icon: Search },

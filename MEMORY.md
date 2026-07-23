@@ -1,5 +1,25 @@
 # BrandArmor Memory
 
+## 2026-07-23 - Scroll World Asset-Backed Correction
+
+What was decided:
+The first scroll-world PR was too CSS-mock-like. The landing should use an asset-backed desktop-first sequence with a dedicated generation path, while still keeping the current app safe if provider generation is unavailable.
+
+Why:
+The upstream scroll-world pattern depends on generated scenes/video-like assets rather than generic floating cards. BrandArmor should have a believable evidence-world story without changing domain logic or unsupported product claims.
+
+What was shipped:
+Five desktop 16:9 scene assets under `public/scroll-world/`, a manifest, an `npm run generate:scroll-world` Gemini image-generation script for replacing fallback SVGs with generated PNG assets, and a revised landing that scrolls through the asset stack rather than drawing generic CSS cards.
+
+What was rejected or deferred:
+Mobile-native 9:16 generation, Higgsfield-specific tooling, live video connector generation, new runtime dependencies, scoring/persistence/review-label changes, and any claim that BrandArmor automatically confirms counterfeits or performs external enforcement.
+
+Verification:
+`npm run typecheck` passed. `npm run generate:scroll-world` was attempted, but `GEMINI_API_KEY` was not visible to this shell process, so the script stopped before calling Google.
+
+Next:
+Expose `GEMINI_API_KEY` to the command environment and run `npm run generate:scroll-world` to replace fallback SVG scenes with generated PNGs. Add Veo/Higgsfield connector clips later only after API access and cost are confirmed.
+
 ## 2026-07-21 - Scroll World Landing Page
 
 What was decided:
