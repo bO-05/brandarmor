@@ -1,5 +1,25 @@
 # BrandArmor Memory
 
+## 2026-07-21 - Scroll World Landing Page
+
+What was decided:
+BrandArmor's root dashboard can introduce the evidence workflow with a scroll-world style landing sequence before showing workspace status. The experience must remain claim-safe: lead intake, cited evidence, and human review are framed as routing and review support, not automatic counterfeit confirmation.
+
+Why:
+The project needed a more immersive first impression inspired by `oso95/scroll-world` without adding generated video assets, new runtime dependencies, or unsupported production vision claims.
+
+What was shipped:
+A CSS-driven scroll-scrubbed hero on `/` with layered 3D evidence cards, reduced-motion handling, dashboard anchor navigation, and CTAs that preserve the existing guided demo/review paths.
+
+What was rejected or deferred:
+Generated image/video assets, external scroll engines, dependency additions, claims of production image retrieval, and changes to scoring, persistence, review labels, or integrations.
+
+Verification:
+`npm run typecheck`, `BPOM_DISABLE_API=1 npm test` with 202/202 passing, `npm run build`, and local HTTP smoke check for `/`. Screenshot capture was attempted but blocked because Playwright is not installed and npm registry access returned 403 for `playwright`.
+
+Next:
+If the landing needs closer parity with the upstream scroll-world skill, add rights-cleared/generated media assets in a separate scoped pass and keep all mock/real provider labels visible.
+
 ## 2026-07-17 - v0.5.0 Evidence-Ready Demo And Review Handoff
 
 What was decided:
