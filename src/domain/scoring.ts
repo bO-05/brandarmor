@@ -349,8 +349,8 @@ export function checkVisualMismatch(visual?: Pick<VisualMatchEvidence, "similari
 
 export function extractCalibratedFeatures(
   listing: Partial<Pick<Listing, "title" | "description" | "price" | "sellerName" | "imageUrls" | "listingUrl" | "screenshotUrl" | "sourceConfidence">>,
-  product?: Partial<Pick<Product, "msrp" | "msrpMin" | "authorizedSellers">>,
-  artifact?: Partial<Pick<OcrArtifact, "suspiciousTermCount" | "averageConfidence">> | null,
+  product?: Partial<Pick<Product, "msrp" | "msrpMin" | "authorizedSellers" | "bpomNie">>,
+  artifact?: Partial<Pick<OcrArtifact, "suspiciousTermCount" | "averageConfidence" | "parsedFields">> | null,
   ruleScore = 0,
   regulatory?: Pick<RegulatoryCheck, "status" | "extractedNie" | "expectedNie"> | null,
   visual?: Pick<VisualMatchEvidence, "similarityScore" | "status"> | null,
@@ -362,6 +362,7 @@ export function extractCalibratedFeatures(
   const sellerAuthorized = listing.sellerName && authorized.length
     ? authorized.some((s) => normalize(s) === normalize(listing.sellerName))
     : null;
+  const expectedIdentifierMissing = Boolean(product?.bpomNie) && !artifact?.parsedFields?.bpomNie;
   const evidenceFields = [
     Boolean(listing.title),
     listing.price != null,
@@ -369,6 +370,7 @@ export function extractCalibratedFeatures(
     Boolean(listing.listingUrl),
     Boolean(listing.imageUrls?.length || listing.screenshotUrl),
     Boolean(artifact?.averageConfidence != null),
+    !expectedIdentifierMissing,
   ];
   return {
     ruleScore,
@@ -379,6 +381,7 @@ export function extractCalibratedFeatures(
     imageSimilarityScore: visual?.similarityScore ?? null,
     regulatoryStatus: regulatory?.status ?? null,
     bpomNieMatch: regulatory?.status === "match" ? true : regulatory?.status === "mismatch" || regulatory?.status === "not_found" ? false : null,
+    expectedIdentifierMissing,
     packagingFieldMismatchCount,
     ocrConfidence: artifact?.averageConfidence ?? null,
     evidenceCompleteness: evidenceFields.filter(Boolean).length / evidenceFields.length,
@@ -406,8 +409,9 @@ export function calibrateScore(features: CalibratedScoreFeatures): { calibratedS
   return { calibratedScore, confidenceBand };
 }
 
-export function deriveEvidenceConfidence(features: Pick<CalibratedScoreFeatures, "evidenceCompleteness" | "ocrConfidence" | "sourceConfidence">): "low" | "medium" | "high" {
+export function deriveEvidenceConfidence(features: Pick<CalibratedScoreFeatures, "evidenceCompleteness" | "ocrConfidence" | "sourceConfidence" | "expectedIdentifierMissing">): "low" | "medium" | "high" {
   if (features.evidenceCompleteness < 0.5) return "low";
+  if (features.expectedIdentifierMissing) return "medium";
   if (features.evidenceCompleteness >= 0.8 && (features.ocrConfidence ?? 0) >= 0.75 && features.sourceConfidence >= 0.75) return "high";
   return "medium";
 }

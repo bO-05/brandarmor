@@ -18,8 +18,8 @@ describe("pilot write authentication guard", () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "brandarmor-pilot-auth-"));
     setDataDir(tmpDir);
     process.env.BRANDARMOR_RUNTIME_MODE = "pilot";
-    delete process.env.NEON_AUTH_BASE_URL;
-    delete process.env.NEON_AUTH_COOKIE_SECRET;
+    delete process.env.CLERK_SECRET_KEY;
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   });
 
   afterEach(() => {

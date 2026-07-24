@@ -15,6 +15,20 @@
       "when": 1784897103827,
       "tag": "0001_fine_chimera",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784899297424,
+      "tag": "0002_silly_black_bolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784899748072,
+      "tag": "0003_updated_at_clock_timestamp",
+      "breakpoints": true
     }
   ]
 }

@@ -39,6 +39,8 @@ The tracked schema lives in:
 src/db/schema.ts
 drizzle/0000_loud_kylun.sql
 drizzle/0001_fine_chimera.sql
+drizzle/0002_silly_black_bolt.sql
+drizzle/0003_updated_at_clock_timestamp.sql
 ```
 
 It creates workspace-scoped operational tables for:
@@ -51,7 +53,7 @@ It creates workspace-scoped operational tables for:
 - review decisions and report versions
 - idempotency keys, audit events, and outbox events
 
-Evaluation labels are deliberately absent from this operational schema. The `evidence_items` table also has a database check constraint rejecting known evaluation-label field names.
+Evaluation labels are deliberately absent from this operational schema. The `evidence_items` table has a normalized database check constraint rejecting label-name variants such as `ground truth`, `ground-truth`, and `groundTruth`. Composite foreign keys bind child records to the same workspace as their parent, and update triggers keep `updated_at` current for persisted mutable records.
 
 The initial migrations have already been verified on the clean Neon production and preview branches. Future tracked migrations use:
 

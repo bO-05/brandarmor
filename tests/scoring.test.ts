@@ -203,6 +203,43 @@ describe("computeScore - integration", () => {
     expect(score.confidenceBand).toBe("strong");
   });
 
+  it("lowers confidence when an otherwise complete package lacks an expected NIE", () => {
+    const score = computeScore(
+      {
+        title: "ExampleBrand Vitamin C Serum 30ml",
+        price: 189000,
+        sellerName: "ExampleBrand Official Store",
+        listingUrl: "https://marketplace.example.test/examplebrand-serum",
+        imageUrls: ["https://images.example.test/examplebrand-serum.png"],
+        sourceConfidence: 0.95,
+      },
+      {
+        msrp: 189000,
+        requiredKeywords: ["examplebrand", "serum", "30ml"],
+        authorizedSellers: ["ExampleBrand Official Store"],
+        bpomNie: "NA18240123456",
+      },
+      {
+        averageConfidence: 0.95,
+        parsedFields: {
+          bpomNie: null,
+          volumeOrSize: "30ml",
+          expiryDate: null,
+          batchOrLot: null,
+          barcodeOrQrText: null,
+          ingredientsText: null,
+          claims: [],
+          brandMentions: ["ExampleBrand"],
+          productMentions: ["Serum"],
+        },
+      },
+    );
+
+    expect(score.reasons.map((reason) => reason.ruleId)).not.toContain("BPOM_NIE_MISMATCH");
+    expect(score.features.evidenceCompleteness).toBeCloseTo(6 / 7, 6);
+    expect(score.confidence).toBe("medium");
+  });
+
   it("flags an observed cosmetics BPOM/NIE mismatch and packaging mismatches", () => {
     const score = computeScore(
       { title: "ExampleBrand Vitamin C Serum 20ml", price: 49000, sellerName: "beauty_racikan", imageUrls: ["img"], listingUrl: "https://example.com", sourceConfidence: 0.85, limitations: [] },

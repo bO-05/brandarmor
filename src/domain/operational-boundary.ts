@@ -1,12 +1,10 @@
 const EVALUATION_LABEL_FIELD_NAMES = new Set([
   "groundtruth",
-  "ground_truth",
   "evaluationlabel",
-  "evaluation_label",
 ]);
 
 export function isEvaluationLabelFieldName(fieldName: string): boolean {
-  return EVALUATION_LABEL_FIELD_NAMES.has(fieldName.toLowerCase());
+  return EVALUATION_LABEL_FIELD_NAMES.has(fieldName.toLowerCase().replace(/[^a-z0-9]+/g, ""));
 }
 
 /**

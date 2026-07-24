@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
-  boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -16,7 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 const createdAt = timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
-const updatedAt = timestamp("updated_at", { withTimezone: true }).notNull().defaultNow();
+const updatedAt = timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdateFn(() => sql`clock_timestamp()`);
 
 export const workspaceRole = pgEnum("workspace_role", ["admin", "reviewer"]);
 export const investigationStatus = pgEnum("investigation_status", [
@@ -103,6 +103,7 @@ export const brands = pgTable(
     updatedAt,
   },
   (table) => [
+    uniqueIndex("brands_id_workspace_unique").on(table.id, table.workspaceId),
     uniqueIndex("brands_workspace_name_unique").on(table.workspaceId, table.name),
     index("brands_workspace_idx").on(table.workspaceId),
   ],
@@ -113,7 +114,7 @@ export const productBaselines = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    brandId: uuid("brand_id").notNull().references(() => brands.id, { onDelete: "restrict" }),
+    brandId: uuid("brand_id").notNull(),
     version: integer("version").notNull().default(1),
     name: text("name").notNull(),
     sku: text("sku"),
@@ -141,9 +142,15 @@ export const productBaselines = pgTable(
     updatedAt,
   },
   (table) => [
+    uniqueIndex("product_baselines_id_workspace_unique").on(table.id, table.workspaceId),
     uniqueIndex("product_baselines_workspace_brand_name_version_unique").on(table.workspaceId, table.brandId, table.name, table.version),
     index("product_baselines_workspace_idx").on(table.workspaceId),
     index("product_baselines_brand_idx").on(table.brandId),
+    foreignKey({
+      columns: [table.brandId, table.workspaceId],
+      foreignColumns: [brands.id, brands.workspaceId],
+      name: "product_baselines_brand_workspace_fk",
+    }).onDelete("restrict"),
   ],
 );
 
@@ -152,7 +159,7 @@ export const listings = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    productBaselineId: uuid("product_baseline_id").references(() => productBaselines.id, { onDelete: "set null" }),
+    productBaselineId: uuid("product_baseline_id"),
     title: text("title").notNull(),
     description: text("description"),
     price: integer("price"),
@@ -172,9 +179,15 @@ export const listings = pgTable(
     updatedAt,
   },
   (table) => [
+    uniqueIndex("listings_id_workspace_unique").on(table.id, table.workspaceId),
     uniqueIndex("listings_workspace_normalized_url_unique").on(table.workspaceId, table.normalizedListingUrl),
     index("listings_workspace_idx").on(table.workspaceId),
     index("listings_product_baseline_idx").on(table.productBaselineId),
+    foreignKey({
+      columns: [table.productBaselineId, table.workspaceId],
+      foreignColumns: [productBaselines.id, productBaselines.workspaceId],
+      name: "listings_product_baseline_workspace_fk",
+    }).onDelete("restrict"),
   ],
 );
 
@@ -183,7 +196,7 @@ export const caseAssets = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    listingId: uuid("listing_id").notNull().references(() => listings.id, { onDelete: "cascade" }),
+    listingId: uuid("listing_id").notNull(),
     objectKey: text("object_key").notNull().unique(),
     contentType: text("content_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
@@ -193,7 +206,15 @@ export const caseAssets = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt,
   },
-  (table) => [index("case_assets_listing_idx").on(table.listingId), index("case_assets_workspace_idx").on(table.workspaceId)],
+  (table) => [
+    index("case_assets_listing_idx").on(table.listingId),
+    index("case_assets_workspace_idx").on(table.workspaceId),
+    foreignKey({
+      columns: [table.listingId, table.workspaceId],
+      foreignColumns: [listings.id, listings.workspaceId],
+      name: "case_assets_listing_workspace_fk",
+    }).onDelete("cascade"),
+  ],
 );
 
 export const investigations = pgTable(
@@ -201,8 +222,8 @@ export const investigations = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    listingId: uuid("listing_id").notNull().references(() => listings.id, { onDelete: "cascade" }),
-    productBaselineId: uuid("product_baseline_id").references(() => productBaselines.id, { onDelete: "set null" }),
+    listingId: uuid("listing_id").notNull(),
+    productBaselineId: uuid("product_baseline_id"),
     listingSnapshot: jsonb("listing_snapshot").notNull(),
     baselineSnapshot: jsonb("baseline_snapshot"),
     status: investigationStatus("status").notNull().default("queued"),
@@ -213,9 +234,20 @@ export const investigations = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
   },
   (table) => [
+    uniqueIndex("investigations_id_workspace_unique").on(table.id, table.workspaceId),
     uniqueIndex("investigations_workspace_fingerprint_unique").on(table.workspaceId, table.inputFingerprint),
     index("investigations_listing_idx").on(table.listingId),
     index("investigations_workspace_status_idx").on(table.workspaceId, table.status),
+    foreignKey({
+      columns: [table.listingId, table.workspaceId],
+      foreignColumns: [listings.id, listings.workspaceId],
+      name: "investigations_listing_workspace_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.productBaselineId, table.workspaceId],
+      foreignColumns: [productBaselines.id, productBaselines.workspaceId],
+      name: "investigations_product_baseline_workspace_fk",
+    }).onDelete("restrict"),
   ],
 );
 
@@ -223,7 +255,8 @@ export const investigationStages = pgTable(
   "investigation_stages",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    investigationId: uuid("investigation_id").notNull().references(() => investigations.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    investigationId: uuid("investigation_id").notNull(),
     stage: investigationStage("stage").notNull(),
     status: investigationStageStatus("status").notNull().default("pending"),
     attempt: integer("attempt").notNull().default(0),
@@ -236,8 +269,14 @@ export const investigationStages = pgTable(
     updatedAt,
   },
   (table) => [
+    uniqueIndex("investigation_stages_id_workspace_unique").on(table.id, table.workspaceId),
     uniqueIndex("investigation_stages_stage_fingerprint_unique").on(table.investigationId, table.stage, table.inputFingerprint),
     index("investigation_stages_claim_idx").on(table.status, table.leaseExpiresAt),
+    foreignKey({
+      columns: [table.investigationId, table.workspaceId],
+      foreignColumns: [investigations.id, investigations.workspaceId],
+      name: "investigation_stages_investigation_workspace_fk",
+    }).onDelete("cascade"),
   ],
 );
 
@@ -246,7 +285,7 @@ export const providerRuns = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    investigationStageId: uuid("investigation_stage_id").notNull().references(() => investigationStages.id, { onDelete: "cascade" }),
+    investigationStageId: uuid("investigation_stage_id").notNull(),
     provider: text("provider").notNull(),
     providerVersion: text("provider_version"),
     mode: providerMode("mode").notNull(),
@@ -258,8 +297,14 @@ export const providerRuns = pgTable(
     createdAt,
   },
   (table) => [
+    uniqueIndex("provider_runs_id_workspace_unique").on(table.id, table.workspaceId),
     uniqueIndex("provider_runs_stage_request_fingerprint_unique").on(table.investigationStageId, table.requestFingerprint),
     index("provider_runs_workspace_idx").on(table.workspaceId),
+    foreignKey({
+      columns: [table.investigationStageId, table.workspaceId],
+      foreignColumns: [investigationStages.id, investigationStages.workspaceId],
+      name: "provider_runs_stage_workspace_fk",
+    }).onDelete("cascade"),
   ],
 );
 
@@ -268,8 +313,8 @@ export const evidenceItems = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    investigationId: uuid("investigation_id").notNull().references(() => investigations.id, { onDelete: "cascade" }),
-    providerRunId: uuid("provider_run_id").references(() => providerRuns.id, { onDelete: "set null" }),
+    investigationId: uuid("investigation_id").notNull(),
+    providerRunId: uuid("provider_run_id"),
     evidenceType: text("evidence_type").notNull(),
     fieldName: text("field_name").notNull(),
     extractedValue: text("extracted_value"),
@@ -283,9 +328,19 @@ export const evidenceItems = pgTable(
   (table) => [
     uniqueIndex("evidence_items_investigation_provider_field_unique").on(table.investigationId, table.providerRunId, table.fieldName),
     index("evidence_items_investigation_idx").on(table.investigationId),
+    foreignKey({
+      columns: [table.investigationId, table.workspaceId],
+      foreignColumns: [investigations.id, investigations.workspaceId],
+      name: "evidence_items_investigation_workspace_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.providerRunId, table.workspaceId],
+      foreignColumns: [providerRuns.id, providerRuns.workspaceId],
+      name: "evidence_items_provider_run_workspace_fk",
+    }).onDelete("restrict"),
     check(
       "evidence_items_no_evaluation_labels",
-      sql`lower(${table.fieldName}) not in ('groundtruth', 'ground_truth', 'evaluationlabel', 'evaluation_label')`,
+      sql`regexp_replace(lower(${table.fieldName}), '[^a-z0-9]+', '', 'g') not in ('groundtruth', 'evaluationlabel')`,
     ),
   ],
 );
@@ -295,7 +350,7 @@ export const scoreSnapshots = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    investigationId: uuid("investigation_id").notNull().references(() => investigations.id, { onDelete: "cascade" }),
+    investigationId: uuid("investigation_id").notNull(),
     evidenceSetHash: text("evidence_set_hash").notNull(),
     scoringVersion: text("scoring_version").notNull(),
     riskScore: integer("risk_score").notNull(),
@@ -307,8 +362,14 @@ export const scoreSnapshots = pgTable(
     createdAt,
   },
   (table) => [
+    uniqueIndex("score_snapshots_id_workspace_unique").on(table.id, table.workspaceId),
     uniqueIndex("score_snapshots_investigation_evidence_hash_unique").on(table.investigationId, table.evidenceSetHash),
     index("score_snapshots_workspace_idx").on(table.workspaceId),
+    foreignKey({
+      columns: [table.investigationId, table.workspaceId],
+      foreignColumns: [investigations.id, investigations.workspaceId],
+      name: "score_snapshots_investigation_workspace_fk",
+    }).onDelete("cascade"),
   ],
 );
 
@@ -317,8 +378,8 @@ export const reviewDecisions = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    investigationId: uuid("investigation_id").notNull().references(() => investigations.id, { onDelete: "cascade" }),
-    scoreSnapshotId: uuid("score_snapshot_id").references(() => scoreSnapshots.id, { onDelete: "set null" }),
+    investigationId: uuid("investigation_id").notNull(),
+    scoreSnapshotId: uuid("score_snapshot_id"),
     status: text("status").notNull(),
     reviewerUserId: uuid("reviewer_user_id").references(() => users.id, { onDelete: "set null" }),
     notes: text("notes"),
@@ -326,7 +387,21 @@ export const reviewDecisions = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => [index("review_decisions_investigation_idx").on(table.investigationId), index("review_decisions_workspace_idx").on(table.workspaceId)],
+  (table) => [
+    uniqueIndex("review_decisions_id_workspace_unique").on(table.id, table.workspaceId),
+    index("review_decisions_investigation_idx").on(table.investigationId),
+    index("review_decisions_workspace_idx").on(table.workspaceId),
+    foreignKey({
+      columns: [table.investigationId, table.workspaceId],
+      foreignColumns: [investigations.id, investigations.workspaceId],
+      name: "review_decisions_investigation_workspace_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.scoreSnapshotId, table.workspaceId],
+      foreignColumns: [scoreSnapshots.id, scoreSnapshots.workspaceId],
+      name: "review_decisions_score_snapshot_workspace_fk",
+    }).onDelete("restrict"),
+  ],
 );
 
 export const reportVersions = pgTable(
@@ -334,9 +409,9 @@ export const reportVersions = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    investigationId: uuid("investigation_id").notNull().references(() => investigations.id, { onDelete: "cascade" }),
-    scoreSnapshotId: uuid("score_snapshot_id").references(() => scoreSnapshots.id, { onDelete: "set null" }),
-    reviewDecisionId: uuid("review_decision_id").references(() => reviewDecisions.id, { onDelete: "set null" }),
+    investigationId: uuid("investigation_id").notNull(),
+    scoreSnapshotId: uuid("score_snapshot_id"),
+    reviewDecisionId: uuid("review_decision_id"),
     version: integer("version").notNull(),
     reportJson: jsonb("report_json").notNull(),
     reportObjectKey: text("report_object_key"),
@@ -350,6 +425,21 @@ export const reportVersions = pgTable(
     uniqueIndex("report_versions_investigation_version_unique").on(table.investigationId, table.version),
     uniqueIndex("report_versions_investigation_content_hash_unique").on(table.investigationId, table.contentHash),
     index("report_versions_workspace_idx").on(table.workspaceId),
+    foreignKey({
+      columns: [table.investigationId, table.workspaceId],
+      foreignColumns: [investigations.id, investigations.workspaceId],
+      name: "report_versions_investigation_workspace_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.scoreSnapshotId, table.workspaceId],
+      foreignColumns: [scoreSnapshots.id, scoreSnapshots.workspaceId],
+      name: "report_versions_score_snapshot_workspace_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.reviewDecisionId, table.workspaceId],
+      foreignColumns: [reviewDecisions.id, reviewDecisions.workspaceId],
+      name: "report_versions_review_decision_workspace_fk",
+    }).onDelete("restrict"),
   ],
 );
 

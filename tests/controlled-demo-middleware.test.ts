@@ -30,9 +30,11 @@ describe("controlled demo middleware", () => {
       "/api/evaluation",
       "/api/seed",
     ]) {
-      const response = await proxy(new NextRequest(`http://localhost${pathname}`, { method: "POST" }), {} as any);
-      expect(response.status).toBe(423);
-      await expect(response.json()).resolves.toMatchObject({ code: "controlled_demo_read_only" });
+      for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+        const response = await proxy(new NextRequest(`http://localhost${pathname}`, { method }), {} as any);
+        expect(response.status).toBe(423);
+        await expect(response.json()).resolves.toMatchObject({ code: "controlled_demo_read_only" });
+      }
     }
 
     const readResponse = await proxy(new NextRequest("http://localhost/api/listings", { method: "GET" }), {} as any);

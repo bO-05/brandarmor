@@ -45,6 +45,11 @@ describe("controlled demo mode", () => {
         sourceType: "manual",
       }),
     }));
+    const listingPatchResponse = await listingsRoute.PATCH(new Request("http://localhost/api/listings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "seed0000000060", productId: "seed0000000002" }),
+    }));
     const demoResponse = await demoRoute.POST();
     const judgeResponse = await judgeRoute.POST(new Request("http://localhost/api/judge", {
       method: "POST",
@@ -55,7 +60,7 @@ describe("controlled demo mode", () => {
     expect(listResponse.status).toBe(200);
     expect((await listResponse.json()).length).toBeGreaterThan(0);
 
-    for (const response of [listingCreateResponse, demoResponse, judgeResponse]) {
+    for (const response of [listingCreateResponse, listingPatchResponse, demoResponse, judgeResponse]) {
       expect(response.status).toBe(423);
       await expect(response.json()).resolves.toMatchObject({
         code: "controlled_demo_read_only",

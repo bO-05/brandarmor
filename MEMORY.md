@@ -20,6 +20,9 @@ No private Blob store, configured Clerk instance, Inngest app, production reposi
 Next:
 Configure a Clerk Organization and secure deployment variables, implement Clerk-to-Neon workspace membership enforcement, then cut over repositories and durable investigation jobs before enabling any hosted write path.
 
+CodeRabbit remediation:
+The Neon schema now uses composite workspace-aware foreign keys for all tenant-owned parent/child relationships, a normalized evaluation-label check, and database triggers using `clock_timestamp()` to maintain mutable `updated_at` values. Preview and production migrations were verified with temporary records: cross-workspace baseline insertion was rejected, normalized legacy label fields were rejected, and the update trigger advanced timestamps.
+
 ## 2026-07-17 - v0.5.0 Evidence-Ready Demo And Review Handoff
 
 What was decided:

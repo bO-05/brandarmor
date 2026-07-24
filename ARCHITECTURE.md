@@ -107,4 +107,4 @@ The current JSON store remains demo-only. The first Neon/Drizzle migrations are 
 7. Add real image embeddings only after a useful reference-image set exists.
 8. Build a separately governed labeled dataset before making accuracy claims.
 
-Evaluation labels are not part of the operational Neon schema and must never enter operational evidence, score, report, or judge payloads. See `docs/PILOT_NEON_SETUP.md` for setup and acceptance requirements.
+Evaluation labels are not part of the operational Neon schema and must never enter operational evidence, score, report, or judge payloads. Composite foreign keys enforce same-workspace parent/child relationships in the Neon schema, and database triggers maintain mutable `updated_at` timestamps. See `docs/PILOT_NEON_SETUP.md` for setup and acceptance requirements.

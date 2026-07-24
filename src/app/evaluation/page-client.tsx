@@ -260,13 +260,13 @@ export default function EvaluationPage() {
                   <div className="mt-5 grid gap-3">
                     <div>
                       <div className="mb-1 flex justify-between text-sm"><span>Precision</span><b>{accuracyClaimsSupported ? percent(best.precision) : "withheld"}</b></div>
-                      <Bar value={best.precision} />
-                      <p className="mt-1 text-xs text-muted-foreground">Of cases routed to review, how many matched suspicious/unsafe labels in the pilot set.</p>
+                      <Bar value={accuracyClaimsSupported ? best.precision : 0} />
+                      <p className="mt-1 text-xs text-muted-foreground">{accuracyClaimsSupported ? "Of cases routed to review, how many matched suspicious/unsafe labels in the pilot set." : "Withheld until an independently reviewed holdout set supports this metric."}</p>
                     </div>
                     <div>
                       <div className="mb-1 flex justify-between text-sm"><span>Recall</span><b>{accuracyClaimsSupported ? percent(best.recall) : "withheld"}</b></div>
-                      <Bar value={best.recall} />
-                      <p className="mt-1 text-xs text-muted-foreground">Of suspicious/unsafe pilot cases, how many the threshold routed to review.</p>
+                      <Bar value={accuracyClaimsSupported ? best.recall : 0} />
+                      <p className="mt-1 text-xs text-muted-foreground">{accuracyClaimsSupported ? "Of suspicious/unsafe pilot cases, how many the threshold routed to review." : "Withheld until an independently reviewed holdout set supports this metric."}</p>
                     </div>
                     <div>
                       <div className="mb-1 flex justify-between text-sm"><span><TermHelp term="review_burden" /></span><b>{percent(best.reviewBurden)}</b></div>
@@ -306,14 +306,18 @@ export default function EvaluationPage() {
                 <h2 className="font-semibold">Optional diagnostic threshold table</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Fixture-only TP/FP/TN/FN diagnostics for internal regression tuning. Do not use these values as real-world validation.</p>
               </div>
-              <button type="button"
-              onClick={() => dispatch({ type: "toggle_technical_table" })}
-                className="inline-flex items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
-              >
-                {showTechnicalTable ? "Hide technical table" : "Show technical table"}
-              </button>
+              {accuracyClaimsSupported ? (
+                <button type="button"
+                  onClick={() => dispatch({ type: "toggle_technical_table" })}
+                  className="inline-flex items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
+                >
+                  {showTechnicalTable ? "Hide technical table" : "Show technical table"}
+                </button>
+              ) : (
+                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">Diagnostic cells withheld</p>
+              )}
             </div>
-            {showTechnicalTable && (
+            {accuracyClaimsSupported && showTechnicalTable && (
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

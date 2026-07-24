@@ -80,7 +80,7 @@ describe("POST /api/scoring score semantics", () => {
     expect(score.riskScore).toBe(0);
     expect(score.riskLevel).toBe("low");
     expect(score.recommendedAction).toBe("ignore");
-    expect(score.evidenceCompleteness).toBeCloseTo(4 / 6, 6);
+    expect(score.evidenceCompleteness).toBeCloseTo(4 / 7, 6);
     expect(score.confidence).toBe("medium");
     expect(score.reasons.map((reason: { ruleId: string }) => reason.ruleId)).not.toContain("MISSING_EVIDENCE");
     expect(score.reasons.map((reason: { ruleId: string }) => reason.ruleId)).not.toContain("BPOM_NIE_MISMATCH");

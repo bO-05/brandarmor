@@ -255,6 +255,7 @@ export interface CalibratedScoreFeatures {
   imageSimilarityScore: number | null;
   regulatoryStatus: RegulatoryCheck["status"] | null;
   bpomNieMatch: boolean | null;
+  expectedIdentifierMissing: boolean;
   packagingFieldMismatchCount: number;
   ocrConfidence: number | null;
   evidenceCompleteness: number;

@@ -49,4 +49,56 @@ describe("GET /api/listings/[id]/report label isolation", () => {
     expect(reportText).not.toContain("groundTruth");
     expect(reportText).not.toContain("\"extractedValue\":\"counterfeit\"");
   });
+
+  it("removes legacy evaluation-label fields when reading an existing evidence report", async () => {
+    const listingId = "legacy-listing";
+    const createdAt = "2026-07-24T00:00:00.000Z";
+    fs.writeFileSync(path.join(tmpDir, "listings.json"), JSON.stringify([{
+      id: listingId,
+      productId: null,
+      title: "Legacy marketplace listing",
+      description: null,
+      price: 49000,
+      currency: "IDR",
+      sellerName: null,
+      marketplace: null,
+      listingUrl: null,
+      imageUrls: [],
+      screenshotUrl: null,
+      sourceConfidence: 0.6,
+      rightsStatus: "unknown",
+      limitations: [],
+      groundTruth: "counterfeit",
+      observedAt: createdAt,
+      rawSource: null,
+      sourceType: "manual",
+      ocrStatus: "not_requested",
+      ocrRequestedAt: null,
+      ocrCompletedAt: null,
+      createdAt,
+    }]));
+    fs.writeFileSync(path.join(tmpDir, "evidence.json"), JSON.stringify([{
+      id: "legacy-evidence",
+      listingId,
+      evidenceType: "label",
+      fieldName: "ground truth",
+      extractedValue: "counterfeit",
+      rawValue: "counterfeit",
+      confidence: 1,
+      notes: null,
+      createdAt,
+    }]));
+
+    const reportRoute = await import("../src/app/api/listings/[id]/report/route");
+    const response = await reportRoute.GET(
+      new Request(`http://localhost/api/listings/${listingId}/report?format=json`),
+      { params: Promise.resolve({ id: listingId }) },
+    );
+    const reportText = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(reportText).not.toContain("groundTruth");
+    expect(reportText).not.toContain("ground truth");
+    expect(reportText).not.toContain("\"extractedValue\":\"counterfeit\"");
+  });
 });
