@@ -2,7 +2,8 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { resetDataDir, setDataDir } from "../src/persistence/store";
+import { createListing, resetDataDir, setDataDir } from "../src/persistence/store";
+import { insertListingSchema } from "../src/domain/schemas";
 
 /**
  * Public seam: GET /api/listings/[id]/report?format=json
@@ -23,19 +24,14 @@ describe("GET /api/listings/[id]/report label isolation", () => {
   });
 
   it("does not persist or expose a submitted evaluation label in the evidence report", async () => {
-    const listingsRoute = await import("../src/app/api/listings/route");
-    const createResponse = await listingsRoute.POST(new Request("http://localhost/api/listings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "Unreviewed marketplace listing",
-        price: 49000,
-        observedAt: "2026-07-24T00:00:00.000Z",
-        sourceType: "manual",
-        groundTruth: "counterfeit",
-      }),
-    }));
-    const listing = await createResponse.json();
+    const parsed = insertListingSchema.parse({
+      title: "Unreviewed marketplace listing",
+      price: 49000,
+      observedAt: "2026-07-24T00:00:00.000Z",
+      sourceType: "manual",
+      groundTruth: "counterfeit",
+    });
+    const listing = createListing(parsed);
 
     const reportRoute = await import("../src/app/api/listings/[id]/report/route");
     const reportResponse = await reportRoute.GET(
@@ -44,7 +40,7 @@ describe("GET /api/listings/[id]/report label isolation", () => {
     );
     const reportText = await reportResponse.text();
 
-    expect(createResponse.status).toBe(201);
+    expect("groundTruth" in parsed).toBe(false);
     expect(reportResponse.status).toBe(200);
     expect(reportText).not.toContain("groundTruth");
     expect(reportText).not.toContain("\"extractedValue\":\"counterfeit\"");

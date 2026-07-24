@@ -98,6 +98,13 @@ function normalize(s: string | null | undefined): string {
   return (s ?? "").toLowerCase().trim();
 }
 
+function expectedNieFor(
+  product?: Partial<Pick<Product, "bpomNie">>,
+  regulatory?: Pick<RegulatoryCheck, "expectedNie"> | null,
+): string {
+  return normalize(product?.bpomNie) || normalize(regulatory?.expectedNie);
+}
+
 function diffPercent(listingPrice: number, msrp: number): number {
   return Math.round(((msrp - listingPrice) / msrp) * 100);
 }
@@ -273,7 +280,7 @@ export function checkBpomNieMismatch(
   product?: Partial<Pick<Product, "bpomNie">>,
   regulatory?: Pick<RegulatoryCheck, "status" | "extractedNie" | "expectedNie"> | null
 ): ScoringReason | null {
-  const expected = normalize(product?.bpomNie ?? regulatory?.expectedNie);
+  const expected = expectedNieFor(product, regulatory);
   const extracted = normalize(artifact?.parsedFields?.bpomNie ?? regulatory?.extractedNie);
   if (!expected && !extracted && !regulatory) return null;
   if (regulatory?.status === "mismatch" || (expected && extracted && expected !== extracted)) {
@@ -362,7 +369,7 @@ export function extractCalibratedFeatures(
   const sellerAuthorized = listing.sellerName && authorized.length
     ? authorized.some((s) => normalize(s) === normalize(listing.sellerName))
     : null;
-  const expectedIdentifierMissing = Boolean(product?.bpomNie) && !artifact?.parsedFields?.bpomNie;
+  const expectedIdentifierMissing = Boolean(expectedNieFor(product, regulatory)) && !normalize(artifact?.parsedFields?.bpomNie);
   const evidenceFields = [
     Boolean(listing.title),
     listing.price != null,
