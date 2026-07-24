@@ -73,6 +73,7 @@ export const users = pgTable("users", {
 
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").defaultRandom().primaryKey(),
+  externalOrganizationId: text("external_organization_id").notNull().unique(),
   name: text("name").notNull(),
   createdAt,
   updatedAt,

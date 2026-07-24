@@ -9,13 +9,16 @@ What was shipped in the remediation branch:
 Operational `groundTruth` handling was removed from listing writes, evidence creation, read projections, reports, judge inputs, and demo seeds. Legacy label fields are stripped at the operational boundary, and the planned Postgres `evidence_items` table has a check constraint rejecting evaluation-label field names. The score now exposes separate risk score, evidence completeness, and confidence; absent OCR/images/expected identifiers lower confidence rather than adding counterfeit risk. `enforce` is now `priority_review`. Reports use privacy language that does not assume listing inputs are public, and synthetic evaluation metrics are explicitly presented as regression diagnostics rather than accuracy claims.
 
 Pilot data foundation:
-The repo now contains Drizzle/Neon schema and tracked initial migration scaffolding for workspace isolation, baselines, listings, private assets, investigations, stages, provider runs, evidence, score snapshots, reviews, versioned reports, idempotency, audit events, and an outbox. Evaluation labels are intentionally not present in this operational schema. See `docs/PILOT_NEON_SETUP.md`.
+The clean Neon project `brandarmor` is provisioned in Singapore with production and preview branches. The tracked Drizzle migrations are applied to both branches, covering workspace isolation, baselines, listings, private assets, investigations, stages, provider runs, evidence, score snapshots, reviews, versioned reports, idempotency, audit events, and an outbox. Evaluation labels are intentionally not present in this operational schema. See `docs/PILOT_NEON_SETUP.md`.
+
+Authentication decision:
+Neon Managed Better Auth remains provisioned but unused after security research found its current beta SDK pins an older Better Auth line with unresolved vendor compatibility uncertainty. Clerk 7.6.0 is the chosen application auth direction because it supports Next 16 and documented Organization roles. The app has only safe fail-closed Clerk scaffolding until real Clerk credentials and workspace membership synchronization are configured.
 
 What remains blocked:
-No Neon database is connected or migrated yet; no private Blob store, authentication provider, Inngest app, production repository cutover, or deployment is configured. The current hosted `/tmp` JSON demo is still non-durable and must remain in controlled demo mode.
+No private Blob store, configured Clerk instance, Inngest app, production repository cutover, or deployment is configured. The current hosted `/tmp` JSON demo is still non-durable and must remain in controlled demo mode.
 
 Next:
-Connect Neon through the secure integration, provision the clean pilot database, apply the tracked migration, then implement the Postgres repositories and durable investigation job before enabling any hosted write path.
+Configure a Clerk Organization and secure deployment variables, implement Clerk-to-Neon workspace membership enforcement, then cut over repositories and durable investigation jobs before enabling any hosted write path.
 
 ## 2026-07-17 - v0.5.0 Evidence-Ready Demo And Review Handoff
 

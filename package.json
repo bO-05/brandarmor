@@ -18,12 +18,13 @@
         "db:migrate": "node scripts/verify-database-env.mjs && drizzle-kit migrate"
     },
     "dependencies": {
+        "@clerk/nextjs": "7.6.0",
         "@neondatabase/serverless": "^1.1.0",
         "@react-pdf/renderer": "^4.3.0",
         "@vercel/speed-insights": "^2.0.0",
         "drizzle-orm": "^0.45.2",
         "lucide-react": "^0.460.0",
-        "next": "15.5.21",
+        "next": "16.2.11",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
         "sharp": "0.35.3",

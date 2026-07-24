@@ -4,9 +4,9 @@
 
 - Not production-ready.
 - Evidence-report downloads are generated on demand and are not retained in object storage or an audit-grade report archive.
-- No authentication.
-- No tenant isolation.
-- No connected or migrated pilot database. A Neon/Drizzle schema and tracked migration exist, but runtime routes still use local JSON until the authenticated cutover is complete.
+- No configured Clerk instance, workspace membership synchronization, or active authenticated pilot route. Clerk scaffolding fails closed when pilot credentials are absent.
+- No enforced tenant isolation in active runtime routes yet; the Neon schema is workspace-scoped but the JSON-to-Neon repository cutover is not complete.
+- Neon pilot database and tracked migrations are provisioned on production and preview branches, but runtime routes still use local JSON until the authenticated cutover is complete.
 - No object storage for screenshots, OCR artifacts, or reports. Private Vercel Blob is planned but not configured.
 - No CI/CD pipeline in this package yet.
 - No monitoring or alerting.

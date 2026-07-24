@@ -96,12 +96,12 @@ External services must be optional or fail clearly:
 
 ## Pilot Migration Path
 
-The current JSON store remains demo-only. The first Neon/Drizzle migration is tracked in `src/db/schema.ts` and `drizzle/0000_loud_kylun.sql`; it has not been applied and no runtime route has switched to it yet.
+The current JSON store remains demo-only. The first Neon/Drizzle migrations are tracked in `src/db/schema.ts`, `drizzle/0000_loud_kylun.sql`, and `drizzle/0001_fine_chimera.sql`; they are applied to clean production and preview Neon branches, but no runtime route has switched to them yet.
 
 1. Connect a clean Neon pilot database and apply the tracked migration.
 2. Implement workspace-scoped repositories for brands, baselines, listings, evidence, scores, reviews, and reports; remove `/tmp` fallback writes on each cutover route.
 3. Add private Blob storage for screenshots, OCR artifacts, and report exports.
-4. Add authentication, tenant isolation, rate limits, provider quotas, and audit-log writes.
+4. Configure Clerk Organizations, map Clerk identities to Neon workspace membership, then add tenant isolation, rate limits, provider quotas, and audit-log writes.
 5. Replace browser orchestration with durable idempotent investigation jobs and persisted stage status.
 6. Add CI for typecheck, tests, lint, migration checks, and build.
 7. Add real image embeddings only after a useful reference-image set exists.

@@ -7,6 +7,7 @@ import { createScore } from "@/persistence/store";
 import { createReviewDecision } from "@/persistence/store";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
+import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 
 export async function GET(request: Request) {
   try {
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
   if (isControlledDemoMode()) {
     return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
   }
+
+  const access = await requirePilotWriteActor();
+  if (!access.allowed) return access.response;
 
   try {
     const contentType = request.headers.get("content-type") ?? "";
@@ -82,6 +86,9 @@ export async function PATCH(request: Request) {
   if (isControlledDemoMode()) {
     return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
   }
+
+  const access = await requirePilotWriteActor();
+  if (!access.allowed) return access.response;
 
   try {
     const body = await request.json();
