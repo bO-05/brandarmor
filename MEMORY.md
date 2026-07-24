@@ -1,5 +1,22 @@
 # BrandArmor Memory
 
+## 2026-07-24 - Pilot Remediation Foundation
+
+What was decided:
+BrandArmor remains a controlled evidence-review demo while pilot infrastructure is built. The hosted runtime can use `BRANDARMOR_RUNTIME_MODE=controlled_demo` to keep seeded read paths available while blocking all API mutations and provider-backed actions.
+
+What was shipped in the remediation branch:
+Operational `groundTruth` handling was removed from listing writes, evidence creation, read projections, reports, judge inputs, and demo seeds. Legacy label fields are stripped at the operational boundary, and the planned Postgres `evidence_items` table has a check constraint rejecting evaluation-label field names. The score now exposes separate risk score, evidence completeness, and confidence; absent OCR/images/expected identifiers lower confidence rather than adding counterfeit risk. `enforce` is now `priority_review`. Reports use privacy language that does not assume listing inputs are public, and synthetic evaluation metrics are explicitly presented as regression diagnostics rather than accuracy claims.
+
+Pilot data foundation:
+The repo now contains Drizzle/Neon schema and tracked initial migration scaffolding for workspace isolation, baselines, listings, private assets, investigations, stages, provider runs, evidence, score snapshots, reviews, versioned reports, idempotency, audit events, and an outbox. Evaluation labels are intentionally not present in this operational schema. See `docs/PILOT_NEON_SETUP.md`.
+
+What remains blocked:
+No Neon database is connected or migrated yet; no private Blob store, authentication provider, Inngest app, production repository cutover, or deployment is configured. The current hosted `/tmp` JSON demo is still non-durable and must remain in controlled demo mode.
+
+Next:
+Connect Neon through the secure integration, provision the clean pilot database, apply the tracked migration, then implement the Postgres repositories and durable investigation job before enabling any hosted write path.
+
 ## 2026-07-17 - v0.5.0 Evidence-Ready Demo And Review Handoff
 
 What was decided:

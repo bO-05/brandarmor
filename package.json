@@ -13,15 +13,20 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "verify:env": "node scripts/verify-environment.cjs",
-        "verify:core": "node --experimental-strip-types --loader ./tests/loader.js tests/core-workflow-direct-verify.mjs"
+        "verify:core": "node --experimental-strip-types --loader ./tests/loader.js tests/core-workflow-direct-verify.mjs",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "node scripts/verify-database-env.mjs && drizzle-kit migrate"
     },
     "dependencies": {
+        "@neondatabase/serverless": "^1.1.0",
         "@react-pdf/renderer": "^4.3.0",
         "@vercel/speed-insights": "^2.0.0",
+        "drizzle-orm": "^0.45.2",
         "lucide-react": "^0.460.0",
-        "next": "^15.5.7",
+        "next": "15.5.21",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
+        "sharp": "0.35.3",
         "sonner": "^1.7.0",
         "zod": "^3.24.0"
     },
@@ -30,6 +35,7 @@
         "@types/node": "^22.0.0",
         "@types/react": "^19.1.0",
         "@types/react-dom": "^19.1.0",
+        "drizzle-kit": "^0.31.10",
         "postcss": "^8.5.0",
         "tailwindcss": "^4.0.0",
         "typescript": "^5.7.0",
@@ -40,7 +46,8 @@
         "node": ">=20.19.0"
     },
     "overrides": {
-        "postcss": "$postcss"
+        "postcss": "$postcss",
+        "sharp": "0.35.3"
     },
     "imports": {
         "@/*": "./src/*"

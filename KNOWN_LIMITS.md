@@ -6,8 +6,8 @@
 - Evidence-report downloads are generated on demand and are not retained in object storage or an audit-grade report archive.
 - No authentication.
 - No tenant isolation.
-- No production database.
-- No object storage for screenshots, OCR artifacts, or reports.
+- No connected or migrated pilot database. A Neon/Drizzle schema and tracked migration exist, but runtime routes still use local JSON until the authenticated cutover is complete.
+- No object storage for screenshots, OCR artifacts, or reports. Private Vercel Blob is planned but not configured.
 - No CI/CD pipeline in this package yet.
 - No monitoring or alerting.
 - No robust marketplace crawler.
@@ -36,6 +36,8 @@ The default product baselines include real Somethinc and Gloglowing BPOM cosmeti
 
 On Vercel/serverless, the demo uses `/tmp` JSON persistence. Empty serverless stores are auto-seeded with deterministic IDs so judges see the same seeded workspace and deep links across instances. This improves demo reliability, but it is still ephemeral demo storage: manually added or changed data can disappear when the serverless instance recycles.
 
+During remediation, set `BRANDARMOR_RUNTIME_MODE=controlled_demo` on the hosted deployment. This keeps seeded read paths available but blocks API mutations and provider-backed runs. Do not treat this guard as authentication, tenant isolation, or a production authorization model.
+
 ## Integration Env Limits
 
 `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, and `PERPLEXITY_API_KEY` are used by current app routes. `BROWSER_USE_ENDPOINT` and `HF_API_TOKEN` are intentionally reported as roadmap integrations by `/api/health/integrations`; do not claim Browser-Use or Hugging Face vision is implemented in v0.5.0.
@@ -48,7 +50,7 @@ Discovery output is a candidate lead source. It is not guaranteed to represent c
 
 ## Accuracy Limits
 
-The app can show metrics on the current 50-case pilot fixture, but the dataset is too small for production-grade accuracy claims. The dashboard and evaluation route now use that same authoritative fixture count instead of per-instance JSON state. Present dataset size clearly and expand toward n=200 only with provenance-documented labels before claiming operational precision/recall targets.
+The current 50 authored fixtures are regression diagnostics, not a pilot validation set. Evaluation labels are kept outside operational listing, evidence, judge, and report paths; the operational evaluation response exposes diagnostic metadata and aggregate calculations only. Do not present precision, recall, F1, or a threshold as operational accuracy until a separately governed, provenance-documented holdout set exists.
 
 ## Correct Claim Discipline
 

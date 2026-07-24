@@ -17,7 +17,6 @@ const listing: Listing = {
   sourceConfidence: 0.7,
   rightsStatus: "manual_observation",
   limitations: ["Synthetic demo evidence"],
-  groundTruth: null,
   observedAt: "2026-07-17T00:00:00.000Z",
   rawSource: null,
   sourceType: "manual",
@@ -156,6 +155,8 @@ describe("case report assembler", () => {
     expect(caseReportSchema.parse(report)).toEqual(report);
     expect(report.disclaimer).toContain("not a legal determination");
     expect(report.claimBoundary).toContain("does not automatically confirm");
+    expect(report.privacy.includedData).toContain("User-provided");
+    expect(report.privacy.excludedData).toContain("may be personal or non-public");
     expect(report.provenance.find((entry) => entry.area === "BPOM/NIE")?.mode).toBe("real");
     expect(report.provenance.find((entry) => entry.area === "Visual comparison")?.mode).toBe("roadmap");
     expect(report.investigation.missingEvidence).toContain("visual_comparison");

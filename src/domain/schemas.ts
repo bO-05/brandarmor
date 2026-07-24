@@ -51,7 +51,6 @@ export const insertListingSchema = z.object({
   sourceConfidence: z.number().min(0).max(1).default(0.6),
   rightsStatus: z.enum(["user_submitted", "public_search_result", "authorized_api", "manual_observation", "unknown"]).default("unknown"),
   limitations: z.array(z.string()).default([]),
-  groundTruth: z.enum(["counterfeit", "legitimate", "likely_counterfeit", "gray_market_import", "expired_or_unsafe", "insufficient_evidence", "unknown"]).nullable().optional(),
   observedAt: z.string(),
   rawSource: z.unknown().nullable().optional(),
   sourceType: z.enum(["manual", "json_import", "csv_import", "search_api", "browser_capture", "marketplace_scrape"]),

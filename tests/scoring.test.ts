@@ -32,7 +32,7 @@ describe("computeRiskLevel", () => {
 });
 
 describe("computeRecommendedAction", () => {
-  it("enforce for >= 80", () => expect(computeRecommendedAction(85)).toBe("enforce"));
+  it("returns priority_review for scores >= 80", () => expect(computeRecommendedAction(85)).toBe("priority_review"));
   it("review for 50-79", () => expect(computeRecommendedAction(60)).toBe("review"));
   it("watch for 20-49", () => expect(computeRecommendedAction(30)).toBe("watch"));
   it("ignore for < 20", () => expect(computeRecommendedAction(5)).toBe("ignore"));
@@ -203,7 +203,7 @@ describe("computeScore - integration", () => {
     expect(score.confidenceBand).toBe("strong");
   });
 
-  it("flags cosmetics BPOM/NIE and packaging mismatches", () => {
+  it("flags an observed cosmetics BPOM/NIE mismatch and packaging mismatches", () => {
     const score = computeScore(
       { title: "ExampleBrand Vitamin C Serum 20ml", price: 49000, sellerName: "beauty_racikan", imageUrls: ["img"], listingUrl: "https://example.com", sourceConfidence: 0.85, limitations: [] },
       { msrp: 189000, requiredKeywords: ["examplebrand", "serum", "30ml"], counterfeitTerms: ["no bpom"], suspiciousTerms: ["racikan"], authorizedSellers: ["ExampleBrand Official Store"], bpomNie: "NA18240123456", sizeLabel: "30ml", ingredientsHighlights: ["niacinamide"], packagingClaims: ["brightening"] },
@@ -212,7 +212,7 @@ describe("computeScore - integration", () => {
         suspiciousTermCount: 1,
         averageConfidence: 0.9,
         parsedFields: {
-          bpomNie: null,
+          bpomNie: "NA18240999999",
           volumeOrSize: "20ml",
           expiryDate: null,
           batchOrLot: null,
@@ -223,7 +223,7 @@ describe("computeScore - integration", () => {
           productMentions: ["Serum"],
         },
       },
-      { status: "not_found", extractedNie: null, expectedNie: "NA18240123456" },
+      { status: "mismatch", extractedNie: "NA18240999999", expectedNie: "NA18240123456" },
       { similarityScore: 0.35, status: "mismatch" }
     );
     expect(score.triggeredRuleIds).toContain("BPOM_NIE_MISMATCH");

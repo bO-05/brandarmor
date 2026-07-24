@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hasEnvValue } from "@/lib/env";
 import { getBrands, getListings, getProducts, isDataDirWritable } from "@/persistence/store";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
+import { isControlledDemoMode } from "@/lib/runtime-mode";
 
 export async function GET() {
   try {
@@ -17,6 +18,8 @@ export async function GET() {
       brandCount,
       productCount,
       listingCount,
+      runtimeMode: isControlledDemoMode() ? "controlled_demo" : "interactive",
+      mutationsEnabled: !isControlledDemoMode(),
       demoReady: dataWritable && brandCount > 0 && productCount > 0 && listingCount > 0,
     });
   } catch (e) {

@@ -14,6 +14,8 @@ interface Readiness {
   brandCount: number;
   productCount: number;
   listingCount: number;
+  runtimeMode: "controlled_demo" | "interactive";
+  mutationsEnabled: boolean;
   demoReady: boolean;
 }
 
@@ -142,6 +144,8 @@ export default function DemoPage() {
     bpomLookupDurationMs: result.status.bpomLookupDurationMs,
   }) : null, [judge, result]);
 
+  const isControlledDemo = readiness?.mutationsEnabled === false;
+
   const steps: Array<{ title: string; detail: string; icon: ComponentType<{ className?: string }>; state: OperationState }> = [
     {
       title: "Prepare demo case",
@@ -170,6 +174,11 @@ export default function DemoPage() {
   ];
 
   async function runDemo() {
+    if (isControlledDemo) {
+      setError("This hosted workspace is view-only while the reliability remediation is verified. You can inspect the seeded case and report, but cannot run providers or create data.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -220,10 +229,11 @@ export default function DemoPage() {
           <div>
             <h2 className="font-semibold">Run one complete evidence path</h2>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">The demo saves the core case first, then requests the evidence judge as a separately visible stage with a bounded fallback.</p>
+            {isControlledDemo && <p className="mt-3 max-w-xl rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">Controlled demo mode is active. Seeded evidence remains available for review, while new data, provider runs, and review changes are disabled during reliability verification.</p>}
           </div>
-          <button type="button" onClick={runDemo} disabled={loading} className="pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="button" onClick={runDemo} disabled={loading || !readiness || isControlledDemo} className="pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60">
             {loading ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
-            {loading ? "Running evidence path..." : "Run Demo Pipeline"}
+            {isControlledDemo ? "Demo is view-only" : loading ? "Running evidence path..." : "Run Demo Pipeline"}
           </button>
         </div>
         <div className="mt-4 rounded-md border border-border bg-background p-3" aria-live="polite" role="status">

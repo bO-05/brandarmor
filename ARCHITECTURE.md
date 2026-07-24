@@ -94,13 +94,17 @@ External services must be optional or fail clearly:
 - Search/discovery output is candidate evidence, not verified marketplace truth.
 - Env-backed integration readiness is exposed through `/api/health/integrations`; configured env does not imply a production integration unless `implemented: true`.
 
-## Production Migration Path
+## Pilot Migration Path
 
-1. Move persistence from local JSON to Postgres.
-2. Add object storage for screenshots, OCR artifacts, and report exports.
-3. Add authentication and tenant isolation.
-4. Add audit logs for evidence and review decisions.
-5. Add CI for typecheck, tests, lint, and build.
-6. Add rate limits and monitoring.
-7. Add real image embeddings only after a useful reference image set exists.
-8. Build a labeled dataset before making accuracy claims.
+The current JSON store remains demo-only. The first Neon/Drizzle migration is tracked in `src/db/schema.ts` and `drizzle/0000_loud_kylun.sql`; it has not been applied and no runtime route has switched to it yet.
+
+1. Connect a clean Neon pilot database and apply the tracked migration.
+2. Implement workspace-scoped repositories for brands, baselines, listings, evidence, scores, reviews, and reports; remove `/tmp` fallback writes on each cutover route.
+3. Add private Blob storage for screenshots, OCR artifacts, and report exports.
+4. Add authentication, tenant isolation, rate limits, provider quotas, and audit-log writes.
+5. Replace browser orchestration with durable idempotent investigation jobs and persisted stage status.
+6. Add CI for typecheck, tests, lint, migration checks, and build.
+7. Add real image embeddings only after a useful reference-image set exists.
+8. Build a separately governed labeled dataset before making accuracy claims.
+
+Evaluation labels are not part of the operational Neon schema and must never enter operational evidence, score, report, or judge payloads. See `docs/PILOT_NEON_SETUP.md` for setup and acceptance requirements.

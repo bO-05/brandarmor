@@ -5,7 +5,8 @@ import path from "path";
 import type { Brand, Product, Listing, Evidence, Score, ReviewDecision, ReviewStatus, EvaluationCase, OcrArtifact, RegulatoryCheck, VisualMatchEvidence, LlmJudgeAssessment,
 } from "@/domain/types";
 import type { InsertBrand, InsertProduct, InsertListing, InsertReviewDecision, InsertEvaluationCase, InsertEvidence } from "@/domain/schemas";
-import { uid } from "@/lib/utils";
+import { isEvaluationLabelFieldName, stripEvaluationLabels } from "@/domain/operational-boundary";
+import { reserveDeterministicId, uid } from "@/lib/utils";
 import { computeScore } from "@/domain/scoring";
 
 let _explicitDataDir: string | null = null;
@@ -133,7 +134,9 @@ export function createProduct(data: InsertProduct): Product {
 
 // --- Listing Operations ---
 export function getListings(productId?: string): Listing[] {
-  const all = readJson<Listing>("listings").sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const all = readJson<Listing>("listings")
+    .map((listing) => stripEvaluationLabels(listing))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return productId ? all.filter((l) => l.productId === productId) : all;
 }
 
@@ -151,8 +154,7 @@ export function createListing(data: InsertListing): Listing {
     listingUrl: data.listingUrl ?? null, imageUrls: data.imageUrls ?? [],
     screenshotUrl: data.screenshotUrl ?? null, sourceConfidence: data.sourceConfidence ?? 0.6,
     rightsStatus: data.rightsStatus ?? "unknown", limitations: data.limitations ?? [],
-    groundTruth: data.groundTruth ?? null,
-    observedAt: data.observedAt ?? now, rawSource: data.rawSource ?? null,
+    observedAt: data.observedAt ?? now, rawSource: stripEvaluationLabels(data.rawSource ?? null),
     sourceType: data.sourceType ?? "manual",
     ocrStatus: "not_requested", ocrRequestedAt: null, ocrCompletedAt: null,
     createdAt: now,
@@ -177,8 +179,7 @@ export function createListingsBulk(data: InsertListing[]): Listing[] {
       listingUrl: d.listingUrl ?? null, imageUrls: d.imageUrls ?? [],
       screenshotUrl: d.screenshotUrl ?? null, sourceConfidence: d.sourceConfidence ?? 0.6,
       rightsStatus: d.rightsStatus ?? "unknown", limitations: d.limitations ?? [],
-      groundTruth: d.groundTruth ?? null,
-      observedAt: d.observedAt ?? now, rawSource: d.rawSource ?? null,
+      observedAt: d.observedAt ?? now, rawSource: stripEvaluationLabels(d.rawSource ?? null),
       sourceType: d.sourceType ?? "json_import",
       ocrStatus: "not_requested", ocrRequestedAt: null, ocrCompletedAt: null,
       createdAt: now,
@@ -406,7 +407,7 @@ export function createEvaluationCase(data: InsertEvaluationCase): EvaluationCase
       sellerName: data.sellerName ?? null, marketplace: data.marketplace ?? null,
       listingUrl: data.listingUrl ?? null, imageUrls: data.imageUrls ?? [],
       screenshotUrl: null, sourceConfidence: 0.6, rightsStatus: "user_submitted",
-      limitations: [], groundTruth: data.groundTruth,
+      limitations: [],
       observedAt: data.observedAt ?? now,
       ocrStatus: "not_requested", ocrRequestedAt: null, ocrCompletedAt: null,
     },
@@ -503,15 +504,20 @@ export function enrichScoreReasons(
 
 // --- Evidence Operations ---
 export function getEvidence(listingId?: string): Evidence[] {
-  const all = readJson<Evidence>("evidence").sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const all = readJson<Evidence>("evidence")
+    .filter((evidence) => !isEvaluationLabelFieldName(evidence.fieldName))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return listingId ? all.filter((e) => e.listingId === listingId) : all;
 }
 
 export function getEvidenceById(id: string): Evidence | undefined {
-  return readJson<Evidence>("evidence").find((e) => e.id === id);
+  return readJson<Evidence>("evidence").find((evidence) => !isEvaluationLabelFieldName(evidence.fieldName) && evidence.id === id);
 }
 
 export function createEvidence(data: InsertEvidence): Evidence {
+  if (isEvaluationLabelFieldName(data.fieldName)) {
+    throw new Error("Evaluation labels cannot be stored as operational evidence");
+  }
   const now = new Date().toISOString();
   const all = readJson<Evidence>("evidence");
   const existing = all.findIndex((record) => (
@@ -560,7 +566,6 @@ function createEvidenceFromListing(listing: Listing): Evidence[] {
     { fieldName: 'sourceConfidence', value: String(listing.sourceConfidence), evidenceType: 'numeric', confidence: 1 },
     { fieldName: 'rightsStatus', value: listing.rightsStatus, evidenceType: 'enum', confidence: 1 },
     { fieldName: 'limitations', value: listing.limitations.length > 0 ? JSON.stringify(listing.limitations) : null, evidenceType: 'limitations', confidence: 1 },
-    { fieldName: 'groundTruth', value: listing.groundTruth, evidenceType: 'label', confidence: 1 },
     { fieldName: 'observedAt', value: listing.observedAt, evidenceType: 'timestamp', confidence: 1 },
     { fieldName: 'sourceType', value: listing.sourceType, evidenceType: 'enum', confidence: 1 },
     { fieldName: 'rawSource', value: listing.rawSource != null ? 'present' : null, evidenceType: 'flag', confidence: 1 },
@@ -574,6 +579,9 @@ function createEvidenceFromListing(listing: Listing): Evidence[] {
     });
   }
   if (results.length === 0) return [];
+  // A retired seed-only label used to consume one deterministic evidence ID.
+  // Reserve that slot so existing public demo deep links remain stable.
+  reserveDeterministicId();
   const all = readJson<Evidence>('evidence');
   all.push(...results);
   writeJson('evidence', all);
@@ -633,10 +641,10 @@ export function seedDemoData(): void {
   });
 
   seedListingsForProduct(somethincProduct, [
-    { title: "Somethinc Calm Down Toner 100ml Original BPOM Murah", price: 49000, sellerName: "skincare_diskon_88", marketplace: "shopee", listingUrl: "https://shopee.co.id/somethinc-calm-down-toner-murah", currency: "IDR", imageUrls: [], screenshotUrl: "https://example.com/somethinc-calm-down-suspect.png", sourceType: "browser_capture", sourceConfidence: 0.8, rightsStatus: "manual_observation", limitations: ["demo screenshot URL placeholder; listing is synthetic for pipeline validation"], groundTruth: "counterfeit", observedAt: new Date().toISOString(), productId: somethincProduct.id },
-    { title: "Somethinc Calm Down Share in Jar Racikan Tanpa BPOM", price: 25000, sellerName: "beauty_racikan", marketplace: "tokopedia", listingUrl: "https://tokopedia.com/somethinc-share-in-jar", currency: "IDR", imageUrls: [], screenshotUrl: "https://example.com/somethinc-share-in-jar.png", sourceType: "search_api", sourceConfidence: 0.65, rightsStatus: "public_search_result", limitations: ["search snippet requires confirmation; listing is synthetic for pipeline validation"], groundTruth: "likely_counterfeit", observedAt: new Date().toISOString(), productId: somethincProduct.id },
-    { title: "Somethinc Calm Down PHA 3% Soothing Everyday Toner 100 mL", price: 159000, sellerName: "Somethinc Official Store", marketplace: "shopee", currency: "IDR", imageUrls: [], sourceType: "manual", sourceConfidence: 0.9, rightsStatus: "manual_observation", limitations: [], groundTruth: "legitimate", observedAt: new Date().toISOString(), productId: somethincProduct.id },
-    { title: "Somethinc Calm Down Toner Singapore Import Murah", price: 99000, sellerName: "beauty_importer_sg", marketplace: "bukalapak", currency: "IDR", imageUrls: [], sourceType: "manual", sourceConfidence: 0.7, rightsStatus: "user_submitted", limitations: ["gray-market/import context requires review; listing is synthetic for pipeline validation"], groundTruth: "gray_market_import", observedAt: new Date().toISOString(), productId: somethincProduct.id },
+    { title: "Somethinc Calm Down Toner 100ml Original BPOM Murah", price: 49000, sellerName: "skincare_diskon_88", marketplace: "shopee", listingUrl: "https://shopee.co.id/somethinc-calm-down-toner-murah", currency: "IDR", imageUrls: [], screenshotUrl: "https://example.com/somethinc-calm-down-suspect.png", sourceType: "browser_capture", sourceConfidence: 0.8, rightsStatus: "manual_observation", limitations: ["demo screenshot URL placeholder; listing is synthetic for pipeline validation"], observedAt: new Date().toISOString(), productId: somethincProduct.id },
+    { title: "Somethinc Calm Down Share in Jar Racikan Tanpa BPOM", price: 25000, sellerName: "beauty_racikan", marketplace: "tokopedia", listingUrl: "https://tokopedia.com/somethinc-share-in-jar", currency: "IDR", imageUrls: [], screenshotUrl: "https://example.com/somethinc-share-in-jar.png", sourceType: "search_api", sourceConfidence: 0.65, rightsStatus: "public_search_result", limitations: ["search snippet requires confirmation; listing is synthetic for pipeline validation"], observedAt: new Date().toISOString(), productId: somethincProduct.id },
+    { title: "Somethinc Calm Down PHA 3% Soothing Everyday Toner 100 mL", price: 159000, sellerName: "Somethinc Official Store", marketplace: "shopee", currency: "IDR", imageUrls: [], sourceType: "manual", sourceConfidence: 0.9, rightsStatus: "manual_observation", limitations: [], observedAt: new Date().toISOString(), productId: somethincProduct.id },
+    { title: "Somethinc Calm Down Toner Singapore Import Murah", price: 99000, sellerName: "beauty_importer_sg", marketplace: "bukalapak", currency: "IDR", imageUrls: [], sourceType: "manual", sourceConfidence: 0.7, rightsStatus: "user_submitted", limitations: ["gray-market/import context requires review; listing is synthetic for pipeline validation"], observedAt: new Date().toISOString(), productId: somethincProduct.id },
   ]);
 
   const gloglowing = upsertDemoBrand({
@@ -675,8 +683,8 @@ export function seedDemoData(): void {
   });
 
   seedListingsForProduct(gloglowingProduct, [
-    { title: "Gloglowing Baby Glow Lip Serum KW Super Murah No BPOM", price: 29000, sellerName: "glowing_diskon_88", marketplace: "shopee", listingUrl: "https://shopee.co.id/gloglowing-baby-glow-lip-serum-kw", currency: "IDR", imageUrls: [], screenshotUrl: "https://example.com/gloglowing-baby-glow-suspect.png", sourceType: "browser_capture", sourceConfidence: 0.75, rightsStatus: "manual_observation", limitations: ["demo screenshot URL placeholder; listing is synthetic for pipeline validation"], groundTruth: "counterfeit", observedAt: new Date().toISOString(), productId: gloglowingProduct.id },
-    { title: "Gloglowing Baby Glow Lip Serum Share in Jar Racikan", price: 15000, sellerName: "beauty_racikan", marketplace: "tokopedia", listingUrl: "https://tokopedia.com/gloglowing-lip-serum-share-in-jar", currency: "IDR", imageUrls: [], screenshotUrl: "https://example.com/gloglowing-share-in-jar.png", sourceType: "search_api", sourceConfidence: 0.65, rightsStatus: "public_search_result", limitations: ["search snippet requires confirmation; listing is synthetic for pipeline validation"], groundTruth: "likely_counterfeit", observedAt: new Date().toISOString(), productId: gloglowingProduct.id },
-    { title: "Baby Glow Lip Serum Gloglowing Official", price: 85000, sellerName: "Gloglowing Official Store", marketplace: "official_site", listingUrl: "https://gloglowing.orderonline.id/lipserum?coupon=ONGKIR50", currency: "IDR", imageUrls: [], sourceType: "manual", sourceConfidence: 0.9, rightsStatus: "manual_observation", limitations: ["Official shop reference captured manually"], groundTruth: "legitimate", observedAt: new Date().toISOString(), productId: gloglowingProduct.id },
+    { title: "Gloglowing Baby Glow Lip Serum KW Super Murah No BPOM", price: 29000, sellerName: "glowing_diskon_88", marketplace: "shopee", listingUrl: "https://shopee.co.id/gloglowing-baby-glow-lip-serum-kw", currency: "IDR", imageUrls: [], screenshotUrl: "https://example.com/gloglowing-baby-glow-suspect.png", sourceType: "browser_capture", sourceConfidence: 0.75, rightsStatus: "manual_observation", limitations: ["demo screenshot URL placeholder; listing is synthetic for pipeline validation"], observedAt: new Date().toISOString(), productId: gloglowingProduct.id },
+    { title: "Gloglowing Baby Glow Lip Serum Share in Jar Racikan", price: 15000, sellerName: "beauty_racikan", marketplace: "tokopedia", listingUrl: "https://tokopedia.com/gloglowing-lip-serum-share-in-jar", currency: "IDR", imageUrls: [], screenshotUrl: "https://example.com/gloglowing-share-in-jar.png", sourceType: "search_api", sourceConfidence: 0.65, rightsStatus: "public_search_result", limitations: ["search snippet requires confirmation; listing is synthetic for pipeline validation"], observedAt: new Date().toISOString(), productId: gloglowingProduct.id },
+    { title: "Baby Glow Lip Serum Gloglowing Official", price: 85000, sellerName: "Gloglowing Official Store", marketplace: "official_site", listingUrl: "https://gloglowing.orderonline.id/lipserum?coupon=ONGKIR50", currency: "IDR", imageUrls: [], sourceType: "manual", sourceConfidence: 0.9, rightsStatus: "manual_observation", limitations: ["Official shop reference captured manually"], observedAt: new Date().toISOString(), productId: gloglowingProduct.id },
   ]);
 }

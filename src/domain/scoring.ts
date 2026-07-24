@@ -1,6 +1,6 @@
 import type { Listing, Product, Score, ScoringReason, RiskLevel, RecommendedAction, OcrArtifact, CalibratedScoreFeatures, RegulatoryCheck, VisualMatchEvidence } from "./types";
 
-export const SCORING_VERSION = "2.0.0-v4-evidence";
+export const SCORING_VERSION = "2.1.0-v5-risk-confidence";
 
 export const SCORING_RULES = {
   COUNTERFEIT_LANGUAGE: {
@@ -285,16 +285,10 @@ export function checkBpomNieMismatch(
       evidenceRefs: [],
     };
   }
-  if (expected && !extracted) {
-    return {
-      ruleId: SCORING_RULES.BPOM_NIE_MISMATCH.id,
-      ruleName: SCORING_RULES.BPOM_NIE_MISMATCH.name,
-      message: `Official baseline expects BPOM/NIE ${product?.bpomNie}, but OCR did not find it`,
-      points: 16,
-      evidenceRefs: [],
-    };
-  }
-  if (regulatory?.status === "not_found") {
+  // An expected NIE with no extracted identifier is a collection gap, not a mismatch.
+  // It reduces evidence completeness and confidence without adding counterfeit risk.
+  if (expected && !extracted) return null;
+  if (regulatory?.status === "not_found" && extracted) {
     return {
       ruleId: SCORING_RULES.BPOM_NIE_MISMATCH.id,
       ruleName: SCORING_RULES.BPOM_NIE_MISMATCH.name,
@@ -404,13 +398,18 @@ export function calibrateScore(features: CalibratedScoreFeatures): { calibratedS
   if (features.imageSimilarityScore != null && features.imageSimilarityScore > 0.8) score -= 8;
   if (features.sourceConfidence < 0.45) score -= 5;
   if (features.ocrConfidence != null && features.ocrConfidence < 0.55) score -= 8;
-  score += Math.round((features.evidenceCompleteness - 0.5) * 10);
   const calibratedScore = Math.max(0, Math.min(100, Math.round(score)));
   const confidenceBand: Score["confidenceBand"] =
     features.evidenceCompleteness < 0.35 ? "low_evidence" :
     features.evidenceCompleteness < 0.55 ? "directional" :
     features.ocrConfidence != null || features.imageSimilarityScore != null ? "strong" : "supported";
   return { calibratedScore, confidenceBand };
+}
+
+export function deriveEvidenceConfidence(features: Pick<CalibratedScoreFeatures, "evidenceCompleteness" | "ocrConfidence" | "sourceConfidence">): "low" | "medium" | "high" {
+  if (features.evidenceCompleteness < 0.5) return "low";
+  if (features.evidenceCompleteness >= 0.8 && (features.ocrConfidence ?? 0) >= 0.75 && features.sourceConfidence >= 0.75) return "high";
+  return "medium";
 }
 
 export function computeScore(
@@ -427,8 +426,6 @@ export function computeScore(
   if (r2) reasons.push(r2);
   const r3 = checkUnauthorizedSeller(listing, product);
   if (r3) reasons.push(r3);
-  const r4 = checkMissingEvidence(listing);
-  if (r4) reasons.push(r4);
   const r5 = checkTitleMismatch(listing, product);
   if (r5) reasons.push(r5);
   const r6 = checkSuspiciousTitleClaims(listing, product);
@@ -448,8 +445,14 @@ export function computeScore(
   const features = extractCalibratedFeatures(listing, product, artifact, ruleScore, regulatory, visual, packagingFieldMismatchCount);
   const { calibratedScore, confidenceBand } = calibrateScore(features);
   const totalScore = calibratedScore;
+  const riskScore = calibratedScore;
+  const evidenceCompleteness = features.evidenceCompleteness;
+  const confidence = deriveEvidenceConfidence(features);
   return {
     totalScore,
+    riskScore,
+    evidenceCompleteness,
+    confidence,
     ruleScore,
     calibratedScore,
     confidenceBand,
@@ -470,7 +473,7 @@ export function computeRiskLevel(score: number): RiskLevel {
 }
 
 export function computeRecommendedAction(score: number): RecommendedAction {
-  if (score >= 80) return "enforce";
+  if (score >= 80) return "priority_review";
   if (score >= 50) return "review";
   if (score >= 20) return "watch";
   return "ignore";

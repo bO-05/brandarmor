@@ -6,6 +6,7 @@ import { computeScore, computeRiskLevel, computeRecommendedAction } from "@/doma
 import { createScore } from "@/persistence/store";
 import { createReviewDecision } from "@/persistence/store";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
+import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 
 export async function GET(request: Request) {
   try {
@@ -20,6 +21,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (isControlledDemoMode()) {
+    return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
+  }
+
   try {
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("multipart/form-data")) {
@@ -74,6 +79,10 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (isControlledDemoMode()) {
+    return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
+  }
+
   try {
     const body = await request.json();
     const parsed = linkListingProductSchema.safeParse(body);

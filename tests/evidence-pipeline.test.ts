@@ -47,7 +47,6 @@ const listing: Listing = {
   sourceConfidence: 0.8,
   rightsStatus: "manual_observation",
   limitations: [],
-  groundTruth: null,
   observedAt: "2026-05-07T00:00:00Z",
   rawSource: null,
   sourceType: "manual",

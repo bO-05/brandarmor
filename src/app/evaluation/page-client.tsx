@@ -18,6 +18,9 @@ interface Metrics {
 interface EvaluationData {
   cases: number;
   metrics: Metrics[];
+  evaluationMode?: "synthetic_regression_diagnostics";
+  accuracyClaimsSupported?: boolean;
+  datasetLabel?: string;
 }
 
 function isNumber(value: unknown): value is number {
@@ -142,6 +145,8 @@ export default function EvaluationPage() {
   const summary = selectEvaluationSummary(data);
   const best = summary.best;
   const plainSummary = selectEvaluationPlainLanguageSummary(summary);
+  const accuracyClaimsSupported = data.accuracyClaimsSupported === true;
+  const diagnosticDatasetLabel = data.datasetLabel ?? "Authored fixture diagnostics";
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -151,13 +156,20 @@ export default function EvaluationPage() {
         <div>
           <h1 className="text-2xl font-bold">Evaluation</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Pilot metrics show how routing thresholds affect reviewer precision and workload. They do not prove production accuracy.
+            This page reports regression diagnostics for authored fixtures. It does not estimate production accuracy or validate real-world review routing.
           </p>
         </div>
         <button type="button" onClick={() => load(true)} className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">
-          <RefreshCw className="size-4" /> Recompute
+          <RefreshCw className="size-4" /> Recompute diagnostics
         </button>
       </div>
+
+      {!accuracyClaimsSupported && (
+        <section className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <h2 className="font-semibold">Diagnostics only — no accuracy claim</h2>
+          <p className="mt-1 leading-6">{diagnosticDatasetLabel}. Precision, recall, false-positive rate, and F1 remain internal regression signals until an independently reviewed, provenance-documented holdout set exists.</p>
+        </section>
+      )}
 
       {error && (
         <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -220,7 +232,7 @@ export default function EvaluationPage() {
                 </p>
               </div>
               <div className="rounded-md border border-border bg-background p-3">
-                <p className="text-sm font-semibold">Best current cutoff</p>
+                <p className="text-sm font-semibold">Diagnostic cutoff</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {best ? `At score ${best.threshold}, the pilot routes ${percent(best.reviewBurden)} of cases for review.` : "No cutoff is available until metrics are computed."}
                 </p>
@@ -247,12 +259,12 @@ export default function EvaluationPage() {
                   <p className="mt-3 text-sm text-muted-foreground">{summary.datasetLabel}. {summary.limitNote}</p>
                   <div className="mt-5 grid gap-3">
                     <div>
-                      <div className="mb-1 flex justify-between text-sm"><span>Precision</span><b>{summary.metricDisplayMode === "guarded" ? `${percent(best.precision)} pilot` : percent(best.precision)}</b></div>
+                      <div className="mb-1 flex justify-between text-sm"><span>Precision</span><b>{accuracyClaimsSupported ? percent(best.precision) : "withheld"}</b></div>
                       <Bar value={best.precision} />
                       <p className="mt-1 text-xs text-muted-foreground">Of cases routed to review, how many matched suspicious/unsafe labels in the pilot set.</p>
                     </div>
                     <div>
-                      <div className="mb-1 flex justify-between text-sm"><span>Recall</span><b>{summary.metricDisplayMode === "guarded" ? `${percent(best.recall)} pilot` : percent(best.recall)}</b></div>
+                      <div className="mb-1 flex justify-between text-sm"><span>Recall</span><b>{accuracyClaimsSupported ? percent(best.recall) : "withheld"}</b></div>
                       <Bar value={best.recall} />
                       <p className="mt-1 text-xs text-muted-foreground">Of suspicious/unsafe pilot cases, how many the threshold routed to review.</p>
                     </div>
@@ -270,13 +282,13 @@ export default function EvaluationPage() {
               <div className="surface-card rounded-lg p-5">
                 <Gauge className="mb-3 size-5 text-primary" />
                 <p className="text-sm text-muted-foreground"><TermHelp term="f1" /></p>
-                <p className="mt-1 text-2xl font-bold">{summary.f1.toFixed(3)}</p>
+                <p className="mt-1 text-2xl font-bold">{accuracyClaimsSupported ? summary.f1.toFixed(3) : "withheld"}</p>
                 <p className="mt-2 text-xs text-muted-foreground">Single-number balance of precision and recall for the selected threshold.</p>
               </div>
               <div className="surface-card rounded-lg p-5">
                 <ShieldAlert className="mb-3 size-5 text-primary" />
                 <p className="text-sm text-muted-foreground">False positive rate</p>
-                <p className="mt-1 text-2xl font-bold">{best ? percent(best.falsePositiveRate) : "0%"}</p>
+                <p className="mt-1 text-2xl font-bold">{best && accuracyClaimsSupported ? percent(best.falsePositiveRate) : "withheld"}</p>
                 <p className="mt-2 text-xs text-muted-foreground">Lower is safer because fewer legitimate cases are routed as suspicious.</p>
               </div>
               <div className="surface-card rounded-lg p-5 sm:col-span-2">
@@ -291,8 +303,8 @@ export default function EvaluationPage() {
           <section className="surface-card rounded-lg p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="font-semibold">Optional technical threshold table</h2>
-                <p className="mt-1 text-sm text-muted-foreground">TP/FP/TN/FN details for people tuning thresholds after reading the stakeholder summary.</p>
+                <h2 className="font-semibold">Optional diagnostic threshold table</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Fixture-only TP/FP/TN/FN diagnostics for internal regression tuning. Do not use these values as real-world validation.</p>
               </div>
               <button type="button"
               onClick={() => dispatch({ type: "toggle_technical_table" })}

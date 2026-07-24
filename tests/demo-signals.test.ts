@@ -3,19 +3,20 @@ import { describe, expect, it } from "vitest";
 import { buildDemoSignalBadges } from "../src/lib/demo-signals";
 
 describe("demo signal provenance badges", () => {
-  it("labels real and mock providers for the one-click demo output", () => {
+  it("uses outcome-specific labels instead of provider-mode claims", () => {
     const signals = buildDemoSignalBadges({
       ocrProvider: "mock",
       regulatoryProvider: "bpom_api",
+      regulatoryStatus: "match",
       visualProvider: "mock",
       judgeProvider: "anthropic",
     });
 
     expect(signals).toEqual({
-      ocr: expect.objectContaining({ mode: "mock", provider: "mock" }),
-      bpom: expect.objectContaining({ mode: "real", provider: "bpom_api" }),
-      visual: expect.objectContaining({ mode: "mock", provider: "mock" }),
-      judge: expect.objectContaining({ mode: "real", provider: "anthropic" }),
+      ocr: expect.objectContaining({ label: "Mock OCR fixture", mode: "mock", provider: "mock" }),
+      bpom: expect.objectContaining({ label: "Live BPOM query: matched", mode: "real", provider: "bpom_api" }),
+      visual: expect.objectContaining({ label: "Visual comparison: inconclusive", mode: "mock", provider: "mock" }),
+      judge: expect.objectContaining({ label: "Evidence judge: completed", mode: "real", provider: "anthropic" }),
     });
   });
 
@@ -41,7 +42,7 @@ describe("demo signal provenance badges", () => {
     });
 
     expect(signals.visual).toMatchObject({
-      label: "Visual check",
+      label: "Visual comparison unavailable",
       mode: "roadmap",
       provider: "not run in demo",
     });

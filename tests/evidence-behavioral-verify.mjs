@@ -302,7 +302,7 @@ console.log("-- Test 5: Score-to-evidence traceability --");
 const score = {
   totalScore: 85,
   riskLevel: "critical",
-  recommendedAction: "enforce",
+  recommendedAction: "priority_review",
   reasons: [
     { ruleId: "COUNTERFEIT_LANGUAGE", ruleName: "Counterfeit Language", message: "Found: kw", points: 30, evidenceRefs: [] },
     { ruleId: "PRICE_ANOMALY", ruleName: "Price Anomaly", message: "Price anomaly", points: 25, evidenceRefs: [] },
@@ -346,7 +346,7 @@ const persistedScore = store.createScore({ ...enriched, listingId: listing.id })
 assert(persistedScore.id, "Persisted score has an ID");
 assert(persistedScore.totalScore === 85, "Persisted score: totalScore preserved");
 assert(persistedScore.riskLevel === "critical", "Persisted score: riskLevel preserved");
-assert(persistedScore.recommendedAction === "enforce", "Persisted score: recommendedAction preserved");
+assert(persistedScore.recommendedAction === "priority_review", "Persisted score: recommendedAction preserved");
 assert(persistedScore.scoringVersion === "1.0.0", "Persisted score: scoringVersion preserved");
 assert(persistedScore.triggeredRuleIds.length === 5, "Persisted score: triggeredRuleIds preserved");
 assert(persistedScore.reasons.length === 5, "Persisted score: reasons preserved");

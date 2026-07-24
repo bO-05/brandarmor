@@ -20,6 +20,11 @@ export function endDeterministicIds(): void {
   _deterministicCounter = null;
 }
 
+/** Preserve stable demo deep links when a seed-only record shape evolves. */
+export function reserveDeterministicId(): void {
+  if (_deterministicCounter !== null) void uid();
+}
+
 export function uid(): string {
   if (_deterministicCounter !== null) {
     _deterministicCounter += 1;

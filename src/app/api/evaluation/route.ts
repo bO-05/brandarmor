@@ -16,16 +16,23 @@ export async function GET(request: Request) {
       cases = getEvaluationCases();
     }
 
+    const diagnosticMetadata = {
+      evaluationMode: "synthetic_regression_diagnostics" as const,
+      accuracyClaimsSupported: false,
+      datasetLabel: "50 authored fixtures for regression diagnostics, not an independently reviewed holdout dataset",
+    };
+
     if (compute === "true") {
       const scored = cases.map((c) => ({
         groundTruth: c.groundTruth,
         score: computeScore(c.listing),
       }));
       const metrics = computeMetricsByThresholds(scored);
-      return NextResponse.json({ cases: cases.length, metrics });
+      return NextResponse.json({ cases: cases.length, metrics, ...diagnosticMetadata });
     }
 
-    return NextResponse.json({ cases });
+    // Evaluation labels are intentionally not returned through the operational API.
+    return NextResponse.json({ cases: cases.length, ...diagnosticMetadata });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
