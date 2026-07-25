@@ -11,19 +11,16 @@ function isPilotNeonMutationRoute(pathname: string): boolean {
   return PILOT_NEON_MUTATION_ROUTES.has(pathname) || /^\/api\/investigations\/[^/]+\/(run|review|report)$/.test(pathname) || /^\/api\/listings\/[^/]+\/assets$/.test(pathname);
 }
 
-const clerkProxy = clerkMiddleware(async (_auth, request) => {
-  if (
-    isPilotRuntime() &&
-    MUTATION_METHODS.has(request.method) &&
-    request.nextUrl.pathname.startsWith("/api/") &&
-    !isPilotNeonMutationRoute(request.nextUrl.pathname)
-  ) {
-    return NextResponse.json({
-      error: "This pilot route has not completed its Neon-backed cutover.",
-      code: "pilot_route_not_implemented",
-    }, { status: 501 });
+const clerkProxy = clerkMiddleware(async (auth, request) => {
+  if (isPilotRuntime() && request.nextUrl.pathname.startsWith("/api/")) {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({
+        error: "Authentication is required for pilot access.",
+        code: "pilot_auth_required",
+      }, { status: 401 });
+    }
   }
-
   return NextResponse.next();
 });
 

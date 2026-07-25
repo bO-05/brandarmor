@@ -228,7 +228,8 @@ describe("LLM evidence judge guardrails", () => {
 
     const assessment = await runLlmJudge({ listing, score, evidence }, false);
 
-    expect(assessment.provider).toBe("anthropic");
+    expect(assessment.provider).toBe("mock");
+    expect(assessment.model).toBe("mock-evidence-judge");
     expect(assessment.error).toBeNull();
     expect(assessment.citedEvidenceIds).toContain("e1");
     expect(assessment.doNotClaimReasons.join(" ")).toContain("not valid JSON");

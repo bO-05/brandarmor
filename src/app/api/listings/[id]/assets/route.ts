@@ -18,7 +18,9 @@ const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"])
 type RouteContext = { params: Promise<{ id: string }> };
 
 function configuredPrivateBlobStore(): boolean {
-  return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN);
+  // On Vercel, OIDC must be paired with the connected store ID. A generic
+  // VERCEL_OIDC_TOKEN alone is not sufficient to address a private Blob store.
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN));
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {

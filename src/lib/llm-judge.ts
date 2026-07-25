@@ -124,6 +124,10 @@ function safeParseJudge(rawText: string, fallback: JudgePayload): JudgePayload {
   }
 }
 
+function usesDeterministicFallback(payload: JudgePayload): boolean {
+  return payload.doNotClaimReasons.some((reason) => /deterministic evidence fallback|did not cite evidence ids|not valid json/i.test(reason));
+}
+
 function parseAnthropicJudge(raw: any, fallback: JudgePayload): JudgePayload {
   const toolUse = raw?.content?.find?.((block: any) => block?.type === "tool_use" && block?.name === JUDGE_TOOL_NAME);
   if (toolUse?.input && typeof toolUse.input === "object") {
@@ -200,13 +204,17 @@ async function runMistralJudge(
     };
   }
   const text = raw?.choices?.[0]?.message?.content ?? "";
+  const parsed = safeParseJudge(text, fallback);
+  const deterministicFallback = usesDeterministicFallback(parsed);
   return {
-    provider: "mistral",
-    model: DEFAULT_MISTRAL_MODEL,
-    ...safeParseJudge(text, fallback),
-    rawJson: fallbackContext
-      ? { providerRaw: raw, fallbackFrom: fallbackContext.from, fallbackStatus: fallbackContext.status, fallbackErrorType: fallbackContext.errorType ?? null }
-      : raw,
+    provider: deterministicFallback ? "mock" : "mistral",
+    model: deterministicFallback ? "mock-evidence-judge" : DEFAULT_MISTRAL_MODEL,
+    ...parsed,
+    rawJson: deterministicFallback
+      ? { mock: true, fallbackFrom: "mistral_invalid_response", providerRaw: raw }
+      : fallbackContext
+        ? { providerRaw: raw, fallbackFrom: fallbackContext.from, fallbackStatus: fallbackContext.status, fallbackErrorType: fallbackContext.errorType ?? null }
+        : raw,
     error: null,
   };
 }
@@ -268,7 +276,15 @@ export async function runLlmJudge(bundle: JudgeEvidenceBundle, forceMock = false
         error: null,
       };
     }
-    return { provider: "anthropic", model: DEFAULT_ANTHROPIC_MODEL, ...parseAnthropicJudge(raw, fallback), rawJson: raw, error: null };
+    const parsed = parseAnthropicJudge(raw, fallback);
+    const deterministicFallback = usesDeterministicFallback(parsed);
+    return {
+      provider: deterministicFallback ? "mock" : "anthropic",
+      model: deterministicFallback ? "mock-evidence-judge" : DEFAULT_ANTHROPIC_MODEL,
+      ...parsed,
+      rawJson: deterministicFallback ? { mock: true, fallbackFrom: "anthropic_invalid_response", providerRaw: raw } : raw,
+      error: null,
+    };
   }
 
   if (hasEnvValue("MISTRAL_API_KEY")) {

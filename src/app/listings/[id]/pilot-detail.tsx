@@ -136,7 +136,9 @@ export default function PilotListingDetail({ listingId }: { listingId: string })
       setReviewStatus(runJson.review?.status ?? "pending");
       setMessage("Durable investigation completed with explicit partial-provider status.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not run the durable investigation.");
+      console.error("BrandArmor durable workflow request failed", error);
+      const detail = error instanceof Error && error.message !== "Failed to fetch" ? error.message : "Could not reach the durable workflow. Refresh and retry; existing case state is preserved.";
+      setMessage(detail);
     } finally {
       setRunning(false);
     }
