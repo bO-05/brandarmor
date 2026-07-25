@@ -35,7 +35,19 @@ export async function requirePilotWriteActor(): Promise<PilotWriteGuard> {
     };
   }
 
-  const session = await auth();
+  let session: Awaited<ReturnType<typeof auth>>;
+  try {
+    session = await auth();
+  } catch {
+    return {
+      allowed: false,
+      response: NextResponse.json({
+        error: "Clerk session verification failed. Check the Preview Clerk keys and deployment URL settings.",
+        code: "pilot_auth_unavailable",
+      }, { status: 503 }),
+    };
+  }
+
   if (!session.isAuthenticated || !session.userId) {
     return {
       allowed: false,

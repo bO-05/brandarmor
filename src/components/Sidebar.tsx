@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Shield, Building2, Package, ClipboardCheck, BarChart3, Search, PlayCircle } from "lucide-react";
 import { useAmbientStatus } from "@/components/AmbientStatusProvider";
+import { PilotAuthControls } from "@/components/PilotAuthControls";
 import { decorateSidebarNavigationGroups, getSidebarNavigationGroups } from "@/lib/ui-ux";
 
 const iconByHref = {
@@ -32,6 +33,7 @@ export function Sidebar() {
           <Image src="/brandarmor-icons/icon-color-transparent.svg" alt="" width={24} height={24} className="size-6 shrink-0" />
           <span className="font-bold text-lg">BrandArmor</span>
         </div>
+        <PilotAuthControls />
       </div>
       <nav aria-label="Primary navigation" className="grid max-w-full gap-3 p-3 md:block md:flex-1 md:overflow-visible">
         {groups.map((group) => {
