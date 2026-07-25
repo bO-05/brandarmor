@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Brand, Product } from "@/domain/types";
+import { fetchWorkspaceBrands, fetchWorkspaceProducts } from "@/lib/pilot-api";
 import { toast } from "sonner";
 
 export default function BrandDetailPage({
@@ -13,10 +14,26 @@ export default function BrandDetailPage({
   initialBrand: Brand | null;
   initialProducts: Product[];
 }) {
-  const brand = initialBrand;
+  const [brand, setBrand] = useState<Brand | null>(initialBrand);
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    Promise.all([fetchWorkspaceBrands(), fetchWorkspaceProducts(brandId)])
+      .then(([brands, nextProducts]) => {
+        if (!active) return;
+        setBrand(brands.find((candidate) => candidate.id === brandId) ?? null);
+        setProducts(nextProducts);
+      })
+      .catch((error) => {
+        if (active) setLoadError(error instanceof Error ? error.message : "Could not load this brand baseline.");
+      });
+    return () => { active = false; };
+  }, [brandId]);
+
+  if (loadError) return <div role="alert" className="p-6 text-destructive">{loadError}</div>;
   if (!brand) return <div className="p-6">Loading&hellip;</div>;
 
   return (

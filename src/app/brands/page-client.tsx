@@ -1,12 +1,28 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PlayCircle, Plus } from "lucide-react";
 import type { Brand } from "@/domain/types";
+import { fetchWorkspaceBrands } from "@/lib/pilot-api";
 import { formatDate } from "@/lib/utils";
 
 export default function BrandsPage({ initialBrands }: { initialBrands: Brand[] }) {
-  const brands = initialBrands;
+  const [brands, setBrands] = useState(initialBrands);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchWorkspaceBrands()
+      .then((nextBrands) => {
+        if (active) setBrands(nextBrands);
+      })
+      .catch((error) => {
+        if (active) setLoadError(error instanceof Error ? error.message : "Could not load brands.");
+      });
+    return () => { active = false; };
+  }, []);
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -18,6 +34,8 @@ export default function BrandsPage({ initialBrands }: { initialBrands: Brand[] }
           <Plus className="size-4" /> New Brand
         </Link>
       </div>
+
+      {loadError ? <p role="alert" className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{loadError}</p> : null}
 
       {brands.length === 0 ? (
         <div className="surface-card rounded-lg p-12 text-center">

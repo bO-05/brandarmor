@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getBrands, createBrand, seedDemoData } from "@/persistence/store";
+import { getBrands, createBrand } from "@/persistence/store";
+import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import { insertBrandSchema } from "@/domain/schemas";
 import { requirePilotAdminActor, requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { createPilotBrand, listPilotBrands } from "@/db/brands-repository";
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(await listPilotBrands(access.actor.workspaceId));
     }
 
+    ensureDemoSeeded();
     return NextResponse.json(getBrands());
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

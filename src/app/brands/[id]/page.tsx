@@ -1,5 +1,4 @@
 import BrandDetailPage from "./page-client";
-import { getBrand, getProducts } from "@/persistence/store";
 
 export const metadata = {
   title: "Brand Detail | BrandArmor",
@@ -7,5 +6,5 @@ export const metadata = {
 };
 
 export default function Page({ params }: { params: { id: string } }) {
-  return <BrandDetailPage brandId={params.id} initialBrand={getBrand(params.id) ?? null} initialProducts={getProducts(params.id)} />;
+  return <BrandDetailPage brandId={params.id} initialBrand={null} initialProducts={[]} />;
 }
