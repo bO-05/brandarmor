@@ -40,4 +40,15 @@ describe("controlled demo middleware", () => {
     const readResponse = await proxy(new NextRequest("http://localhost/api/listings", { method: "GET" }), {} as any);
     expect(readResponse.headers.get("x-middleware-next")).toBe("1");
   });
+
+  it("blocks unconverted pilot mutations before they can reach JSON routes", async () => {
+    process.env.BRANDARMOR_RUNTIME_MODE = "pilot";
+    delete process.env.CLERK_SECRET_KEY;
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+    const response = await proxy(new NextRequest("http://localhost/api/demo/run", { method: "POST" }), {} as any);
+
+    expect(response.status).toBe(501);
+    await expect(response.json()).resolves.toMatchObject({ code: "pilot_route_not_implemented" });
+  });
 });
