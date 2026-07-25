@@ -14,7 +14,7 @@ interface Readiness {
   brandCount: number;
   productCount: number;
   listingCount: number;
-  runtimeMode: "controlled_demo" | "interactive";
+  runtimeMode: "controlled_demo" | "interactive" | "pilot";
   mutationsEnabled: boolean;
   demoReady: boolean;
 }
@@ -145,6 +145,7 @@ export default function DemoPage() {
   }) : null, [judge, result]);
 
   const isControlledDemo = readiness?.mutationsEnabled === false;
+  const isPilot = readiness?.runtimeMode === "pilot";
 
   const steps: Array<{ title: string; detail: string; icon: ComponentType<{ className?: string }>; state: OperationState }> = [
     {
@@ -212,6 +213,29 @@ export default function DemoPage() {
       setElapsed(Date.now() - now);
       setLoading(false);
     }
+  }
+
+  if (isPilot) {
+    return (
+      <div className="mx-auto max-w-4xl">
+        <p className="text-xs font-semibold uppercase text-muted-foreground">Pilot evidence workflow</p>
+        <h1 className="mt-1 text-2xl font-bold">Start a durable, evidence-backed case.</h1>
+        <p className="mt-2 max-w-3xl text-muted-foreground">The legacy seeded demo is intentionally unavailable in pilot mode. Create a real workspace case instead: every stage, evidence item, review decision, and report is retained in the shared pilot data plane.</p>
+        <section className="surface-card mt-6 rounded-lg p-6">
+          <h2 className="font-semibold">One next action at a time</h2>
+          <ol className="mt-4 space-y-3 text-sm">
+            <li className="rounded-md border border-border bg-background p-3"><b>1. Create a baseline.</b><span className="block mt-1 text-muted-foreground">Add official source, MSRP, authorized sellers, images, and BPOM/NIE details.</span></li>
+            <li className="rounded-md border border-border bg-background p-3"><b>2. Capture a listing.</b><span className="block mt-1 text-muted-foreground">Paste listing text, enter a marketplace URL, or upload a private screenshot.</span></li>
+            <li className="rounded-md border border-border bg-background p-3"><b>3. Resume durable evidence collection.</b><span className="block mt-1 text-muted-foreground">OCR, regulatory, visual, scoring, and judge outcomes persist with clear partial-failure status.</span></li>
+            <li className="rounded-md border border-border bg-background p-3"><b>4. Review and export.</b><span className="block mt-1 text-muted-foreground">A human review decision and versioned JSON report remain shared across workspace members.</span></li>
+          </ol>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/brands" className="inline-flex min-h-10 items-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground">Create product baseline</Link>
+            <Link href="/listings/new" className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Create listing case <ArrowRight className="ml-2 size-4" /></Link>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
