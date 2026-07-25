@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
 
 import { computeScore, SCORING_VERSION } from "@/domain/scoring";
 import { stripEvaluationLabels } from "@/domain/operational-boundary";
@@ -27,6 +27,20 @@ import {
 
 const STAGES = ["intake", "ocr", "regulatory", "visual", "scoring", "judge", "human_review", "report"] as const;
 type Stage = (typeof STAGES)[number];
+
+export class PilotInvestigationNotFoundError extends Error {
+  constructor() {
+    super("Investigation not found.");
+    this.name = "PilotInvestigationNotFoundError";
+  }
+}
+
+export class PilotReviewNotFoundError extends Error {
+  constructor() {
+    super("Review decision not found. Run the investigation first.");
+    this.name = "PilotReviewNotFoundError";
+  }
+}
 
 type PilotActorContext = {
   workspaceId: string;
@@ -192,7 +206,7 @@ async function updateStage(
     .update(investigationStages)
     .set({
       status,
-      attempt: status === "running" ? 1 : undefined,
+      attempt: status === "running" ? sql`${investigationStages.attempt} + 1` : undefined,
       startedAt: status === "running" ? now : undefined,
       completedAt: status === "running" ? undefined : now,
       safeError,
@@ -332,20 +346,26 @@ export async function runPilotInvestigation(
   investigationId: string,
 ): Promise<PilotInvestigationState> {
   const db = getDatabase();
+  const now = new Date();
   const [investigation] = await db
-    .select()
-    .from(investigations)
-    .where(and(eq(investigations.workspaceId, actor.workspaceId), eq(investigations.id, investigationId)))
-    .limit(1);
-  if (!investigation) throw new Error("Investigation not found.");
+    .update(investigations)
+    .set({ status: "running", leaseExpiresAt: new Date(now.getTime() + 5 * 60 * 1000) })
+    .where(and(
+      eq(investigations.workspaceId, actor.workspaceId),
+      eq(investigations.id, investigationId),
+      or(
+        ne(investigations.status, "running"),
+        isNull(investigations.leaseExpiresAt),
+        lt(investigations.leaseExpiresAt, now),
+      ),
+    ))
+    .returning();
+  if (!investigation) {
+    return getPilotInvestigationState(actor.workspaceId, investigationId);
+  }
 
   const listing = investigation.listingSnapshot as Listing;
   const product = investigation.baselineSnapshot as Product | null;
-
-  await db
-    .update(investigations)
-    .set({ status: "running" })
-    .where(and(eq(investigations.workspaceId, actor.workspaceId), eq(investigations.id, investigationId)));
 
   await updateStage(actor.workspaceId, investigationId, "intake", "running");
   const [existingIntakeEvidence] = await db
@@ -675,7 +695,7 @@ export async function runPilotInvestigation(
 
   await db
     .update(investigations)
-    .set({ status: "completed_partial", completedAt: new Date() })
+    .set({ status: "completed_partial", completedAt: new Date(), leaseExpiresAt: null })
     .where(and(eq(investigations.workspaceId, actor.workspaceId), eq(investigations.id, investigationId)));
   await db.insert(auditEvents).values({
     workspaceId: actor.workspaceId,
@@ -709,7 +729,7 @@ export async function updatePilotReviewDecision({
     .from(reviewDecisions)
     .where(and(eq(reviewDecisions.workspaceId, workspaceId), eq(reviewDecisions.investigationId, investigationId)))
     .limit(1);
-  if (!existing) throw new Error("Review decision not found. Run the investigation first.");
+  if (!existing) throw new PilotReviewNotFoundError();
 
   const [updated] = await db
     .update(reviewDecisions)
@@ -804,7 +824,7 @@ export async function getPilotInvestigationState(workspaceId: string, investigat
     .from(investigations)
     .where(and(eq(investigations.workspaceId, workspaceId), eq(investigations.id, investigationId)))
     .limit(1);
-  if (!investigation) throw new Error("Investigation not found.");
+  if (!investigation) throw new PilotInvestigationNotFoundError();
 
   const stageRows = await db
     .select()

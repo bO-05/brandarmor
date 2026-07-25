@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
-import { getPilotInvestigationState, updatePilotReviewDecision } from "@/db/investigations-repository";
+import { getPilotInvestigationState, PilotReviewNotFoundError, updatePilotReviewDecision } from "@/db/investigations-repository";
 import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 import { enforcePilotRateLimit, PilotRateLimitError } from "@/lib/pilot-controls";
@@ -34,6 +34,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   try {
+    const parsed = reviewSchema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
     await enforcePilotRateLimit({
       workspaceId: access.actor.workspaceId,
       userId: access.actor.userId,
@@ -41,8 +43,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       limit: 30,
       windowSeconds: 60 * 60,
     });
-    const parsed = reviewSchema.safeParse(await request.json());
-    if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
     const { id } = await context.params;
     const review = await updatePilotReviewDecision({
       workspaceId: access.actor.workspaceId,
@@ -57,6 +57,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (error instanceof PilotRateLimitError) {
       return NextResponse.json({ error: error.message, code: "pilot_rate_limited" }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not save review decision." }, { status: 500 });
+    if (error instanceof PilotReviewNotFoundError) {
+      return NextResponse.json({ error: error.message, code: "review_not_found" }, { status: 404 });
+    }
+    console.error("BrandArmor review update failed", error);
+    return NextResponse.json({ error: "Could not save review decision.", code: "review_update_failed" }, { status: 500 });
   }
 }

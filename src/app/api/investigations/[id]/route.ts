@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getPilotInvestigationState } from "@/db/investigations-repository";
+import { getPilotInvestigationState, PilotInvestigationNotFoundError } from "@/db/investigations-repository";
 import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -18,6 +18,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Investigation not found." }, { status: 404 });
+    if (error instanceof PilotInvestigationNotFoundError) {
+      return NextResponse.json({ error: error.message, code: "investigation_not_found" }, { status: 404 });
+    }
+    console.error("BrandArmor investigation lookup failed", error);
+    return NextResponse.json({ error: "Could not load investigation.", code: "investigation_lookup_failed" }, { status: 500 });
   }
 }

@@ -36,6 +36,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const access = await requirePilotWriteActor(request);
   if (!access.allowed) return access.response;
+  try {
   if (access.actor?.workspaceId) {
     const report = await getPilotReportForListing(access.actor.workspaceId, listingId);
     if (!report) return NextResponse.json({ error: "Durable report not found. Run the investigation first." }, { status: 404 });
@@ -86,4 +87,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       "Cache-Control": "no-store",
     },
   });
+  } catch (error) {
+    console.error("BrandArmor report lookup failed", error);
+    return NextResponse.json({ error: "Could not prepare the evidence report.", code: "report_lookup_failed" }, { status: 500 });
+  }
 }

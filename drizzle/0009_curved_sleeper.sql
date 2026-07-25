@@ -1,0 +1,1 @@
+ALTER TABLE "investigations" ADD COLUMN IF NOT EXISTS "lease_expires_at" timestamp with time zone;

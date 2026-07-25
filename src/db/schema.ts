@@ -230,6 +230,7 @@ export const investigations = pgTable(
     status: investigationStatus("status").notNull().default("queued"),
     inputFingerprint: text("input_fingerprint").notNull(),
     requestedByUserId: uuid("requested_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
     createdAt,
     updatedAt,
     completedAt: timestamp("completed_at", { withTimezone: true }),
