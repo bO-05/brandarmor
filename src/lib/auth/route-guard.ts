@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
 import { DatabaseConfigurationError } from "@/db";
 import { PilotWorkspaceAccessError, resolvePilotWorkspace } from "@/db/workspace-access";
 
@@ -22,7 +22,7 @@ export type PilotWriteGuard =
  * on Proxy alone: the resource-owning handler verifies configuration, identity,
  * organization, and role close to the mutation.
  */
-export async function requirePilotWriteActor(): Promise<PilotWriteGuard> {
+export async function requirePilotWriteActor(request?: Request): Promise<PilotWriteGuard> {
   if (!isPilotRuntime()) return { allowed: true, actor: null };
 
   if (!isClerkConfigured()) {
@@ -35,9 +35,19 @@ export async function requirePilotWriteActor(): Promise<PilotWriteGuard> {
     };
   }
 
-  let session: Awaited<ReturnType<typeof auth>>;
+  if (!request) {
+    return {
+      allowed: false,
+      response: NextResponse.json({
+        error: "Pilot authentication request context is unavailable.",
+        code: "pilot_auth_request_missing",
+      }, { status: 503 }),
+    };
+  }
+
+  let session: ReturnType<typeof getAuth>;
   try {
-    session = await auth();
+    session = getAuth(request as NextRequest);
   } catch {
     return {
       allowed: false,
@@ -118,8 +128,8 @@ export async function requirePilotWriteActor(): Promise<PilotWriteGuard> {
   }
 }
 
-export async function requirePilotAdminActor(): Promise<PilotWriteGuard> {
-  const access = await requirePilotWriteActor();
+export async function requirePilotAdminActor(request?: Request): Promise<PilotWriteGuard> {
+  const access = await requirePilotWriteActor(request);
   if (!access.allowed || !access.actor?.workspaceId) return access;
   if (access.actor.role !== "admin") {
     return {

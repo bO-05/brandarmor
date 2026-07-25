@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const brandId = searchParams.get("brandId");
-    const access = await requirePilotWriteActor();
+    const access = await requirePilotWriteActor(request);
     if (!access.allowed) return access.response;
     if (access.actor?.workspaceId) {
       return NextResponse.json(await listPilotProductBaselines(access.actor.workspaceId, brandId));
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
   }
 
-  const access = await requirePilotAdminActor();
+  const access = await requirePilotAdminActor(request);
   if (!access.allowed) return access.response;
 
   try {

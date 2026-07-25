@@ -5,9 +5,9 @@ import { requirePilotAdminActor, requirePilotWriteActor } from "@/lib/auth/route
 import { createPilotBrand, listPilotBrands } from "@/db/brands-repository";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const access = await requirePilotWriteActor();
+    const access = await requirePilotWriteActor(request);
     if (!access.allowed) return access.response;
     if (access.actor?.workspaceId) {
       return NextResponse.json(await listPilotBrands(access.actor.workspaceId));
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
   }
 
-  const access = await requirePilotAdminActor();
+  const access = await requirePilotAdminActor(request);
   if (!access.allowed) return access.response;
 
   try {
