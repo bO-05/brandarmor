@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { DatabaseConfigurationError } from "@/db";
+import { PilotWorkspaceAccessError, resolvePilotWorkspace } from "@/db/workspace-access";
+
 import { isClerkConfigured, isPilotRuntime } from "./config";
 
 export type PilotActor = {
   externalSubject: string;
   externalOrganizationId: string;
+  workspaceId?: string;
+  userId?: string;
   role: "admin" | "reviewer";
 };
 
@@ -51,12 +56,67 @@ export async function requirePilotWriteActor(): Promise<PilotWriteGuard> {
     };
   }
 
-  return {
-    allowed: true,
-    actor: {
-      externalSubject: session.userId,
-      externalOrganizationId: session.orgId,
-      role: session.orgRole === "org:admin" ? "admin" : "reviewer",
-    },
+  if (session.orgRole !== "org:admin" && session.orgRole !== "org:member") {
+    return {
+      allowed: false,
+      response: NextResponse.json({
+        error: "The active organization role is not approved for BrandArmor pilot writes.",
+        code: "pilot_workspace_role_unsupported",
+      }, { status: 403 }),
+    };
+  }
+
+  const actor: PilotActor = {
+    externalSubject: session.userId,
+    externalOrganizationId: session.orgId,
+    role: session.orgRole === "org:admin" ? "admin" : "reviewer",
   };
+
+  try {
+    const workspace = await resolvePilotWorkspace(actor);
+    return {
+      allowed: true,
+      actor: {
+        ...actor,
+        workspaceId: workspace.workspaceId,
+        userId: workspace.userId,
+        role: workspace.role,
+      },
+    };
+  } catch (error) {
+    if (error instanceof DatabaseConfigurationError) {
+      return {
+        allowed: false,
+        response: NextResponse.json({
+          error: "Pilot database is not configured.",
+          code: "pilot_database_not_configured",
+        }, { status: 503 }),
+      };
+    }
+    if (error instanceof PilotWorkspaceAccessError) {
+      return {
+        allowed: false,
+        response: NextResponse.json({
+          error: error.message,
+          code: error.code,
+        }, { status: 403 }),
+      };
+    }
+    throw error;
+  }
+}
+
+export async function requirePilotAdminActor(): Promise<PilotWriteGuard> {
+  const access = await requirePilotWriteActor();
+  if (!access.allowed || !access.actor?.workspaceId) return access;
+  if (access.actor.role !== "admin") {
+    return {
+      allowed: false,
+      response: NextResponse.json({
+        error: "A BrandArmor workspace admin role is required for this action.",
+        code: "pilot_workspace_admin_required",
+      }, { status: 403 }),
+    };
+  }
+  return access;
 }
