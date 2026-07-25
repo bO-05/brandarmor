@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -57,15 +57,23 @@ const setupActions = [
 
 export default function DashboardPage({ initialData }: { initialData: DashboardData }) {
   const ambient = useAmbientStatus();
+  const [brandCount, setBrandCount] = useState(initialData.brands);
+  useEffect(() => {
+    fetch("/api/brands", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : [])
+      .then((brands) => setBrandCount(Array.isArray(brands) ? brands.length : 0))
+      .catch(() => setBrandCount(0));
+  }, []);
   const data = ambient ? {
     ...initialData,
+    brands: brandCount,
     listings: ambient.listingCount,
     unlinkedListings: ambient.unlinkedListingCount,
     unscoredListings: ambient.unscoredListingCount,
     pendingReviews: ambient.pendingReviewCount,
     highRisk: ambient.highRiskScoreCount,
     reviewDecisions: ambient.reviewDecisionCount,
-  } : initialData;
+  } : { ...initialData, brands: brandCount };
   const [error, setError] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
 
