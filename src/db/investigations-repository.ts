@@ -3,7 +3,12 @@ import { createHash } from "node:crypto";
 import { and, asc, desc, eq } from "drizzle-orm";
 
 import { computeScore, SCORING_VERSION } from "@/domain/scoring";
-import type { Listing, Product, Score } from "@/domain/types";
+import type { Evidence, Listing, Product, Score } from "@/domain/types";
+import { runLlmJudge } from "@/lib/llm-judge";
+import { processMistralOcr } from "@/lib/mistral-ocr";
+import { privateImageDataUrl } from "@/lib/private-case-assets";
+import { enrichRegulatoryCheckWithBpomApi, inferRegulatoryCheck } from "@/lib/regulatory-check";
+import { inferVisualMatch } from "@/lib/visual-compare";
 
 import { getDatabase } from "./index";
 import { listPilotCaseAssets } from "./case-assets-repository";
@@ -13,6 +18,7 @@ import {
   investigations,
   investigationStages,
   outboxEvents,
+  providerRuns,
   reportVersions,
   reviewDecisions,
   scoreSnapshots,
@@ -197,6 +203,104 @@ async function updateStage(
     ));
 }
 
+async function createProviderRun({
+  workspaceId,
+  investigationId,
+  stage,
+  provider,
+  mode,
+  outcome,
+  requestFingerprint,
+  safeError,
+}: {
+  workspaceId: string;
+  investigationId: string;
+  stage: Stage;
+  provider: string;
+  mode: "live" | "mock" | "unavailable";
+  outcome: "matched" | "no_match" | "partial" | "failed" | "skipped";
+  requestFingerprint: string;
+  safeError: string | null;
+}) {
+  const db = getDatabase();
+  const [stageRow] = await db
+    .select({ id: investigationStages.id })
+    .from(investigationStages)
+    .where(and(
+      eq(investigationStages.workspaceId, workspaceId),
+      eq(investigationStages.investigationId, investigationId),
+      eq(investigationStages.stage, stage),
+    ))
+    .limit(1);
+  if (!stageRow) throw new Error(`Missing durable stage ${stage}.`);
+
+  await db
+    .insert(providerRuns)
+    .values({
+      workspaceId,
+      investigationStageId: stageRow.id,
+      provider,
+      providerVersion: null,
+      mode,
+      outcome,
+      requestFingerprint,
+      safeError,
+      startedAt: new Date(),
+      completedAt: new Date(),
+    })
+    .onConflictDoNothing({ target: [providerRuns.investigationStageId, providerRuns.requestFingerprint] });
+
+  const [run] = await db
+    .select()
+    .from(providerRuns)
+    .where(and(eq(providerRuns.investigationStageId, stageRow.id), eq(providerRuns.requestFingerprint, requestFingerprint)))
+    .limit(1);
+  if (!run) throw new Error(`Provider run ${provider} did not persist.`);
+  return run;
+}
+
+async function persistProviderEvidence({
+  workspaceId,
+  investigationId,
+  providerRunId,
+  evidenceType,
+  fieldName,
+  extractedValue,
+  confidence,
+  collectionStatus,
+  provenance,
+  notes,
+}: {
+  workspaceId: string;
+  investigationId: string;
+  providerRunId: string;
+  evidenceType: string;
+  fieldName: string;
+  extractedValue: string | null;
+  confidence: number | null;
+  collectionStatus: "collected" | "unavailable" | "failed" | "not_requested";
+  provenance: string;
+  notes: string | null;
+}) {
+  const db = getDatabase();
+  await db
+    .insert(evidenceItems)
+    .values({
+      workspaceId,
+      investigationId,
+      providerRunId,
+      evidenceType,
+      fieldName,
+      extractedValue,
+      rawObjectKey: null,
+      confidenceBasisPoints: confidence == null ? null : Math.round(confidence * 10_000),
+      collectionStatus,
+      provenance,
+      notes,
+    })
+    .onConflictDoNothing({ target: [evidenceItems.investigationId, evidenceItems.providerRunId, evidenceItems.fieldName] });
+}
+
 function toScoreSnapshot(score: Pick<Score, "riskScore" | "totalScore" | "evidenceCompleteness" | "confidence" | "riskLevel" | "recommendedAction" | "reasons" | "scoringVersion">) {
   return {
     riskScore: score.riskScore ?? score.totalScore,
@@ -268,28 +372,148 @@ export async function runPilotInvestigation(
   }
   await updateStage(actor.workspaceId, investigationId, "intake", "succeeded");
 
-  // Do not claim a provider ran when only a private upload exists. The durable
-  // state makes the asset available to a later worker and communicates the gap
-  // as partial evidence, rather than converting missing data into counterfeit risk.
   const assets = await listPilotCaseAssets(actor.workspaceId, investigation.listingId);
-  await updateStage(
-    actor.workspaceId,
+  let ocrArtifact: import("@/domain/types").OcrArtifact | undefined;
+  let regulatory: import("@/domain/types").RegulatoryCheck | undefined;
+
+  if (!assets.length) {
+    await updateStage(actor.workspaceId, investigationId, "ocr", "skipped", "No private image asset is attached yet.");
+  } else {
+    await updateStage(actor.workspaceId, investigationId, "ocr", "running");
+    const asset = assets[0];
+    try {
+      const imageDataUrl = await privateImageDataUrl({ objectKey: asset.objectKey, contentType: asset.contentType });
+      const ocrResult = await processMistralOcr({ listingId: listing.id, imageUrl: imageDataUrl });
+      const run = await createProviderRun({
+        workspaceId: actor.workspaceId,
+        investigationId,
+        stage: "ocr",
+        provider: ocrResult.provider,
+        mode: ocrResult.provider === "mistral" && ocrResult.status === "completed" ? "live" : ocrResult.provider === "mock" ? "mock" : "unavailable",
+        outcome: ocrResult.status === "completed" ? "matched" : "failed",
+        requestFingerprint: fingerprint({ asset: asset.sha256, provider: "mistral-ocr", model: ocrResult.model }),
+        safeError: ocrResult.error,
+      });
+      await persistProviderEvidence({
+        workspaceId: actor.workspaceId,
+        investigationId,
+        providerRunId: run.id,
+        evidenceType: "ocr",
+        fieldName: "ocr_markdown",
+        extractedValue: ocrResult.markdown || null,
+        confidence: ocrResult.averageConfidence,
+        collectionStatus: ocrResult.status === "completed" ? "collected" : "failed",
+        provenance: ocrResult.provider === "mistral" ? "live_mistral_ocr" : "mock_ocr_fixture",
+        notes: ocrResult.error,
+      });
+      if (ocrResult.parsedFields.bpomNie) {
+        await persistProviderEvidence({
+          workspaceId: actor.workspaceId,
+          investigationId,
+          providerRunId: run.id,
+          evidenceType: "ocr_packaging_field",
+          fieldName: "ocr_bpom_nie",
+          extractedValue: ocrResult.parsedFields.bpomNie,
+          confidence: ocrResult.averageConfidence,
+          collectionStatus: ocrResult.status === "completed" ? "collected" : "failed",
+          provenance: ocrResult.provider === "mistral" ? "live_mistral_ocr" : "mock_ocr_fixture",
+          notes: null,
+        });
+      }
+      ocrArtifact = {
+        ...ocrResult,
+        id: run.id,
+        listingId: listing.id,
+        createdAt: new Date().toISOString(),
+      };
+      await updateStage(actor.workspaceId, investigationId, "ocr", ocrResult.status === "completed" ? "succeeded" : "partial", ocrResult.error);
+    } catch (error) {
+      const safeError = error instanceof Error ? error.message : "Private OCR could not complete.";
+      const run = await createProviderRun({
+        workspaceId: actor.workspaceId,
+        investigationId,
+        stage: "ocr",
+        provider: "mistral",
+        mode: "unavailable",
+        outcome: "failed",
+        requestFingerprint: fingerprint({ asset: asset.sha256, provider: "mistral-ocr" }),
+        safeError,
+      });
+      await persistProviderEvidence({
+        workspaceId: actor.workspaceId,
+        investigationId,
+        providerRunId: run.id,
+        evidenceType: "ocr",
+        fieldName: "ocr_markdown",
+        extractedValue: null,
+        confidence: null,
+        collectionStatus: "failed",
+        provenance: "mistral_ocr_unavailable",
+        notes: safeError,
+      });
+      await updateStage(actor.workspaceId, investigationId, "ocr", "partial", safeError);
+    }
+  }
+
+  await updateStage(actor.workspaceId, investigationId, "regulatory", "running");
+  const regulatoryBase = inferRegulatoryCheck(listing, product ?? undefined, ocrArtifact);
+  const enrichedRegulatory = await enrichRegulatoryCheckWithBpomApi(regulatoryBase, product?.name ?? null);
+  const regulatoryRun = await createProviderRun({
+    workspaceId: actor.workspaceId,
     investigationId,
-    "ocr",
-    assets.length ? "partial" : "skipped",
-    assets.length ? "Private screenshot is stored; OCR worker has not run yet." : "No private image asset is attached yet.",
-  );
-  await updateStage(actor.workspaceId, investigationId, "regulatory", "skipped", "No extracted identifier is available for a provider query.");
-  await updateStage(
-    actor.workspaceId,
+    stage: "regulatory",
+    provider: enrichedRegulatory.provider,
+    mode: enrichedRegulatory.provider === "bpom_api" ? "live" : "unavailable",
+    outcome: enrichedRegulatory.status === "verified_active" || enrichedRegulatory.status === "match" ? "matched" : enrichedRegulatory.status === "not_found" ? "no_match" : "partial",
+    requestFingerprint: fingerprint({ extractedNie: enrichedRegulatory.extractedNie, expectedNie: enrichedRegulatory.expectedNie, provider: enrichedRegulatory.provider }),
+    safeError: enrichedRegulatory.provider === "bpom_api" ? null : enrichedRegulatory.notes,
+  });
+  await persistProviderEvidence({
+    workspaceId: actor.workspaceId,
     investigationId,
-    "visual",
-    assets.length ? "partial" : "skipped",
-    assets.length ? "Private screenshot is stored; visual comparison worker has not run yet." : "No private image asset and reference comparison are available yet.",
-  );
+    providerRunId: regulatoryRun.id,
+    evidenceType: "regulatory",
+    fieldName: "regulatory_status",
+    extractedValue: enrichedRegulatory.status,
+    confidence: enrichedRegulatory.provider === "bpom_api" ? 0.9 : null,
+    collectionStatus: enrichedRegulatory.provider === "bpom_api" ? "collected" : "unavailable",
+    provenance: enrichedRegulatory.provider === "bpom_api" ? `live_bpom_query:${enrichedRegulatory.status}` : "bpom_query_unavailable",
+    notes: enrichedRegulatory.notes,
+  });
+  regulatory = {
+    ...enrichedRegulatory,
+    id: regulatoryRun.id,
+    createdAt: new Date().toISOString(),
+  };
+  await updateStage(actor.workspaceId, investigationId, "regulatory", enrichedRegulatory.provider === "bpom_api" ? "succeeded" : "partial", enrichedRegulatory.provider === "bpom_api" ? null : enrichedRegulatory.notes);
+
+  const visualError = assets.length ? "Private screenshot is stored; production visual-comparison adapter is unavailable." : "No private image asset and reference comparison are available yet.";
+  const visualRun = await createProviderRun({
+    workspaceId: actor.workspaceId,
+    investigationId,
+    stage: "visual",
+    provider: "visual_adapter",
+    mode: "unavailable",
+    outcome: "partial",
+    requestFingerprint: fingerprint({ assets: assets.map((asset) => asset.sha256), baselineImages: product?.officialImageUrls ?? [] }),
+    safeError: visualError,
+  });
+  await persistProviderEvidence({
+    workspaceId: actor.workspaceId,
+    investigationId,
+    providerRunId: visualRun.id,
+    evidenceType: "visual_comparison",
+    fieldName: "visual_status",
+    extractedValue: "unavailable",
+    confidence: null,
+    collectionStatus: "unavailable",
+    provenance: "visual_comparison_unavailable",
+    notes: visualError,
+  });
+  await updateStage(actor.workspaceId, investigationId, "visual", "partial", visualError);
 
   await updateStage(actor.workspaceId, investigationId, "scoring", "running");
-  const score = computeScore(listing, product ?? undefined);
+  const score = computeScore(listing, product ?? undefined, ocrArtifact, regulatory);
   const snapshot = toScoreSnapshot(score);
   const evidenceSetHash = fingerprint({
     listing,
@@ -319,7 +543,67 @@ export async function runPilotInvestigation(
   if (!scoreSnapshot) throw new Error("Scoring did not create a durable snapshot.");
   await updateStage(actor.workspaceId, investigationId, "scoring", "succeeded");
 
-  await updateStage(actor.workspaceId, investigationId, "judge", "skipped", "Evidence judge is deferred until provider evidence is collected.");
+  await updateStage(actor.workspaceId, investigationId, "judge", "running");
+  const judgeEvidenceRows = await db
+    .select()
+    .from(evidenceItems)
+    .where(and(eq(evidenceItems.workspaceId, actor.workspaceId), eq(evidenceItems.investigationId, investigationId)))
+    .orderBy(asc(evidenceItems.createdAt));
+  const judgeEvidence: Evidence[] = judgeEvidenceRows.map((item) => ({
+    id: item.id,
+    listingId: listing.id,
+    evidenceType: item.evidenceType,
+    fieldName: item.fieldName,
+    extractedValue: item.extractedValue ?? "",
+    rawValue: null,
+    confidence: item.confidenceBasisPoints == null ? null : item.confidenceBasisPoints / 10_000,
+    notes: item.notes,
+    createdAt: item.createdAt.toISOString(),
+  }));
+  const scoreForJudge: Score = {
+    ...score,
+    id: scoreSnapshot.id,
+    listingId: listing.id,
+    createdAt: scoreSnapshot.createdAt.toISOString(),
+  };
+  const judgeResult = await runLlmJudge({
+    listing,
+    product: product ?? undefined,
+    score: scoreForJudge,
+    evidence: judgeEvidence,
+    regulatory,
+  });
+  const judgeRun = await createProviderRun({
+    workspaceId: actor.workspaceId,
+    investigationId,
+    stage: "judge",
+    provider: judgeResult.provider,
+    mode: judgeResult.provider === "mock" ? "mock" : "live",
+    outcome: judgeResult.judgeRisk === "insufficient_evidence" ? "partial" : "matched",
+    requestFingerprint: fingerprint({ scoreSnapshotId: scoreSnapshot.id, evidence: judgeEvidence.map((item) => item.id), provider: judgeResult.provider }),
+    safeError: judgeResult.error,
+  });
+  await persistProviderEvidence({
+    workspaceId: actor.workspaceId,
+    investigationId,
+    providerRunId: judgeRun.id,
+    evidenceType: "judge_assessment",
+    fieldName: "judge_assessment",
+    extractedValue: JSON.stringify({
+      judgeRisk: judgeResult.judgeRisk,
+      confidence: judgeResult.confidence,
+      supportedReasons: judgeResult.supportedReasons,
+      missingEvidence: judgeResult.missingEvidence,
+      citedEvidenceIds: judgeResult.citedEvidenceIds,
+      doNotClaimReasons: judgeResult.doNotClaimReasons,
+    }),
+    confidence: judgeResult.confidence === "high" ? 0.8 : judgeResult.confidence === "medium" ? 0.55 : 0.3,
+    collectionStatus: judgeResult.provider === "mock" ? "unavailable" : "collected",
+    provenance: judgeResult.provider === "mock" ? "mock_judge_fallback" : `live_${judgeResult.provider}_judge`,
+    notes: judgeResult.error,
+  });
+  await updateStage(actor.workspaceId, investigationId, "judge", judgeResult.provider === "mock" || judgeResult.judgeRisk === "insufficient_evidence" ? "partial" : "succeeded", judgeResult.error ?? (judgeResult.provider === "mock" ? "Live judge unavailable; mock diagnostic output is clearly labeled." : null));
+
   await updateStage(actor.workspaceId, investigationId, "human_review", "running");
   await db
     .insert(reviewDecisions)
@@ -351,9 +635,12 @@ export async function runPilotInvestigation(
     score: compactScore(scoreSnapshot),
     status: "completed_partial",
     limitations: [
-      "OCR, regulatory lookup, visual comparison, and judge evidence were not run in this durable intake slice.",
+      ocrArtifact?.status === "completed" ? null : "OCR evidence is unavailable or partial.",
+      regulatory?.provider === "bpom_api" ? null : "Live BPOM verification is unavailable or requires manual confirmation.",
+      "Production visual comparison is unavailable; no visual mismatch claim was made.",
+      judgeResult.provider === "mock" ? "Evidence judge used a clearly labeled mock fallback." : null,
       "Missing evidence lowers confidence and does not itself establish counterfeit risk.",
-    ],
+    ].filter((value): value is string => Boolean(value)),
   };
   const reportHash = fingerprint(reportJson);
   const [existingReport] = await db
