@@ -1,29 +1,42 @@
 import { envValue } from "@/lib/env";
-import { fetchJsonWithProviderTimeout, providerFailure } from "@/lib/provider-safety";
+import { fetchJsonWithProviderTimeout } from "@/lib/provider-safety";
 
-const MARKETPLACE_PATTERNS = [
-  { name: "shopee", pattern: /shopee/i },
-  { name: "tokopedia", pattern: /tokopedia/i },
-  { name: "bukalapak", pattern: /bukalapak/i },
-  { name: "blibli", pattern: /blibli/i },
-  { name: "lazada", pattern: /lazada/i },
-];
+const MARKETPLACES = [
+  { name: "shopee", hosts: ["shopee.co.id", "shopee.com"] },
+  { name: "tokopedia", hosts: ["tokopedia.com"] },
+  { name: "bukalapak", hosts: ["bukalapak.com"] },
+  { name: "blibli", hosts: ["blibli.com"] },
+  { name: "lazada", hosts: ["lazada.co.id", "lazada.com"] },
+] as const;
 
 export interface DiscoveryCandidate {
   title: string;
   url: string;
   snippet: string;
   marketplace: string;
-  source: "mock" | "perplexity";
+  source: "perplexity";
   sourceConfidence: number;
+  verifiedMarketplaceDomain: true;
+}
+
+export function verifiedMarketplaceForUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.pathname === "/") return null;
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    for (const marketplace of MARKETPLACES) {
+      if (marketplace.hosts.some((host) => hostname === host || hostname.endsWith(`.${host}`))) return marketplace.name;
+    }
+  } catch {
+    // Invalid URLs are never candidates.
+  }
+  return null;
 }
 
 export async function discoverCandidates(query: string): Promise<DiscoveryCandidate[]> {
   const apiKey = envValue("PERPLEXITY_API_KEY");
-  if (!apiKey) return mockCandidates(query);
+  if (!apiKey) return [];
 
-  let response: Response;
-  let raw: any;
   try {
     const result = await fetchJsonWithProviderTimeout<any>("Perplexity discovery", "https://api.perplexity.ai/chat/completions", {
       method: "POST",
@@ -36,78 +49,36 @@ export async function discoverCandidates(query: string): Promise<DiscoveryCandid
         messages: [
           {
             role: "system",
-            content: "Find public web candidate listings related to counterfeit or suspicious marketplace products. Return compact JSON only.",
+            content: "Find only public product-listing URLs on Shopee, Tokopedia, Bukalapak, Blibli, or Lazada. Exclude news, social, documents, category pages, and unknown domains. Return compact JSON only.",
           },
           {
             role: "user",
-            content: `Find up to 5 public candidate listing URLs for: ${query}. Return JSON array with title,url,snippet,marketplace.`,
+            content: `Find up to 5 verified marketplace listing URLs for: ${query}. Return JSON array with title,url,snippet.`,
           },
         ],
       }),
     }, 10_000);
-    response = result.response;
-    raw = result.json;
-  } catch (error) {
-    return mockCandidates(query, providerFailure(error, "Perplexity discovery").safeMessage);
-  }
-  if (!response.ok) return mockCandidates(query, "Perplexity discovery is unavailable; showing clearly labeled demo candidates.");
-  const content = raw?.choices?.[0]?.message?.content ?? "[]";
-  try {
+    if (!result.response.ok) return [];
+    const content = result.json?.choices?.[0]?.message?.content ?? "[]";
     const parsed = JSON.parse(content.replace(/^```json\s*/i, "").replace(/```$/i, ""));
-    if (Array.isArray(parsed)) {
-      return parsed.slice(0, 5).flatMap((item: any) => {
-        const url = String(item.url ?? "");
-        return url ? [{
-          title: String(item.title ?? query),
-          url,
-          snippet: String(item.snippet ?? ""),
-          marketplace: String(item.marketplace ?? inferMarketplace(url)),
-          source: "perplexity" as const,
-          sourceConfidence: 0.55,
-        }] : [];
-      });
-    }
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.slice(0, 10).flatMap((item: unknown) => {
+      const record = item as Record<string, unknown>;
+      const url = typeof record.url === "string" ? record.url : "";
+      const marketplace = verifiedMarketplaceForUrl(url);
+      if (!marketplace) return [];
+      return [{
+        title: typeof record.title === "string" ? record.title : query,
+        url,
+        snippet: typeof record.snippet === "string" ? record.snippet : "",
+        marketplace,
+        source: "perplexity" as const,
+        sourceConfidence: 0.55,
+        verifiedMarketplaceDomain: true as const,
+      }];
+    });
   } catch {
-    // Fall through to transparent mock-style candidate preserving raw answer.
+    return [];
   }
-  return [{
-    title: `Search result for ${query}`,
-    url: "https://example.com/search-result-needs-confirmation",
-    snippet: content.slice(0, 500),
-    marketplace: "web",
-    source: "perplexity",
-    sourceConfidence: 0.35,
-  }];
-}
-
-function inferMarketplace(url: string): string {
-  for (const marketplace of MARKETPLACE_PATTERNS) {
-    if (marketplace.pattern.test(url)) return marketplace.name;
-  }
-  return "web";
-}
-
-function mockCandidates(query: string, note?: string): DiscoveryCandidate[] {
-  const slug = query.toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 70) || "brandarmor-candidate";
-  return [
-    {
-      title: `${query} KW Super Grade AAA murah`,
-      url: `https://example.com/${slug}-kw-super`,
-      snippet: note ?? "Demo candidate: suspicious terms visible in search result. Needs browser capture or user evidence.",
-      marketplace: "shopee",
-      source: "mock",
-      sourceConfidence: 0.45,
-    },
-    {
-      title: `${query} official discount verified seller`,
-      url: `https://example.com/${slug}-official-discount`,
-      snippet: "Demo candidate: likely legitimate authorized seller discount.",
-      marketplace: "tokopedia",
-      source: "mock",
-      sourceConfidence: 0.45,
-    },
-  ];
 }

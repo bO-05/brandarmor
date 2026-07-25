@@ -14,6 +14,7 @@ export default function NewListingPage() {
   const [titleError, setTitleError] = useState<string | null>(null);
   const [baselineError, setBaselineError] = useState<string | null>(null);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState("");
 
   function set(field: string, value: string) { setForm(prev => ({ ...prev, [field]: value })); }
 
@@ -30,6 +31,23 @@ export default function NewListingPage() {
 
   function validateTitle(value: string): string | null {
     return value.trim() ? null : "Listing title is required.";
+  }
+
+  function extractPastedListing() {
+    const lines = pastedText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const priceMatch = pastedText.match(/(?:rp\.?|idr)\s*([\d.,]+)/i);
+    const sellerMatch = pastedText.match(/(?:seller|penjual|shop)\s*[:\-]\s*([^\n]+)/i);
+    const marketplace = /shopee/i.test(pastedText) ? "shopee" : /tokopedia/i.test(pastedText) ? "tokopedia" : /lazada/i.test(pastedText) ? "lazada" : /blibli/i.test(pastedText) ? "blibli" : /bukalapak/i.test(pastedText) ? "bukalapak" : "";
+    setForm((current) => ({
+      ...current,
+      title: current.title || lines[0] || "",
+      description: current.description || pastedText,
+      price: current.price || (priceMatch?.[1] ?? ""),
+      sellerName: current.sellerName || (sellerMatch?.[1]?.trim() ?? ""),
+      marketplace: current.marketplace || marketplace,
+    }));
+    setTitleError(null);
+    setPriceError(null);
   }
 
   useEffect(() => {
@@ -139,6 +157,12 @@ export default function NewListingPage() {
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">New Listing</h1>
       <form noValidate onSubmit={handleSubmit} className="surface-card rounded-lg p-6 space-y-3">
+        <section className="rounded-md border border-border bg-muted/40 p-4">
+          <h2 className="text-sm font-semibold">Start with a marketplace URL, pasted listing text, or screenshot</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Paste what you can see from the listing. BrandArmor extracts a draft that you can review and correct before saving.</p>
+          <textarea value={pastedText} onChange={(event) => setPastedText(event.target.value)} placeholder="Paste listing title, price, seller, and description" rows={4} className="mt-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <button type="button" onClick={extractPastedListing} disabled={!pastedText.trim()} className="mt-2 rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground disabled:opacity-60">Extract draft fields</button>
+        </section>
         <div>
           <label htmlFor="listing-product-baseline" className="mb-1 block text-sm font-medium">Product Baseline</label>
           <select id="listing-product-baseline" name="productId" required value={form.productId} onChange={(e) => { set("productId", e.target.value); setBaselineError(e.target.value ? null : "Choose a product baseline before creating a durable investigation."); }} className="w-full rounded-md border border-border bg-background px-3 py-2">

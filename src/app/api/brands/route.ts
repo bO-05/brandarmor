@@ -5,6 +5,7 @@ import { insertBrandSchema } from "@/domain/schemas";
 import { requirePilotAdminActor, requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { createPilotBrand, listPilotBrands } from "@/db/brands-repository";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
+import { enforcePilotRateLimit, PilotRateLimitError } from "@/lib/pilot-controls";
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,6 +31,9 @@ export async function POST(request: NextRequest) {
   if (!access.allowed) return access.response;
 
   try {
+    if (access.actor?.workspaceId && access.actor.userId) {
+      await enforcePilotRateLimit({ workspaceId: access.actor.workspaceId, userId: access.actor.userId, scope: "brand.write", limit: 30, windowSeconds: 60 * 60 });
+    }
     const body = await request.json();
     const parsed = insertBrandSchema.safeParse(body);
     if (!parsed.success) {
@@ -41,6 +45,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(createBrand(parsed.data), { status: 201 });
   } catch (e) {
+    if (e instanceof PilotRateLimitError) {
+      return NextResponse.json({ error: e.message, code: "pilot_rate_limited" }, { status: 429, headers: { "Retry-After": String(e.retryAfterSeconds) } });
+    }
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }

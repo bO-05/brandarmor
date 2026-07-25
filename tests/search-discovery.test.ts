@@ -10,14 +10,11 @@ describe("candidate discovery fallback", () => {
     else process.env.PERPLEXITY_API_KEY = originalPerplexityKey;
   });
 
-  it("keeps mock candidates brand-generic for Gloglowing queries", async () => {
+  it("does not fabricate candidates when verified marketplace discovery is unavailable", async () => {
     delete process.env.PERPLEXITY_API_KEY;
 
     const candidates = await discoverCandidates("Gloglowing Baby Glow Lip Serum suspicious marketplace");
 
-    expect(candidates.length).toBeGreaterThan(0);
-    expect(candidates[0].title).toContain("Gloglowing");
-    expect(candidates.every((candidate) => !candidate.url.toLowerCase().includes("somethinc"))).toBe(true);
-    expect(candidates.every((candidate) => candidate.source === "mock")).toBe(true);
+    expect(candidates).toEqual([]);
   });
 });

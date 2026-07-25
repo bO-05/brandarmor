@@ -7,6 +7,7 @@ import { createOrReusePilotInvestigation } from "@/db/investigations-repository"
 import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 import { enforcePilotRateLimit, PilotRateLimitError } from "@/lib/pilot-controls";
+import { inngest, isInngestConfigured } from "@/lib/inngest";
 
 const investigationRequestSchema = z.object({ listingId: z.string().uuid() });
 
@@ -45,8 +46,20 @@ export async function POST(request: NextRequest) {
       listing,
       baseline,
     );
+    const inngestConfigured = isInngestConfigured();
+    if (result.created && inngestConfigured) {
+      await inngest.send({
+        name: "brandarmor/investigation.queued",
+        data: {
+          workspaceId: access.actor.workspaceId,
+          userId: access.actor.userId,
+          investigationId: result.state.investigation.id,
+        },
+      });
+    }
     return NextResponse.json({
       ...result,
+      worker: inngestConfigured ? "inngest_queued" : "manual_resume_required",
       runUrl: `/api/investigations/${result.state.investigation.id}/run`,
       statusUrl: `/api/investigations/${result.state.investigation.id}`,
     }, { status: result.created ? 202 : 200 });

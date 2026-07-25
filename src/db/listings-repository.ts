@@ -85,6 +85,16 @@ export async function getPilotListing(workspaceId: string, listingId: string): P
   return row ? mapListing(row) : null;
 }
 
+export async function linkPilotListingProductBaseline(workspaceId: string, listingId: string, productId: string): Promise<Listing | null> {
+  const db = getDatabase();
+  const [updated] = await db
+    .update(listings)
+    .set({ productBaselineId: productId })
+    .where(and(eq(listings.workspaceId, workspaceId), eq(listings.id, listingId)))
+    .returning();
+  return updated ? mapListing(updated) : null;
+}
+
 export async function listPilotListings(workspaceId: string, productId?: string | null): Promise<Listing[]> {
   const db = getDatabase();
   const rows = await db

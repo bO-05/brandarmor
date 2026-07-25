@@ -5,10 +5,10 @@ import { isClerkConfigured, isPilotRuntime } from "@/lib/auth/config";
 
 const CONTROLLED_DEMO_RUNTIME_MODE = "controlled_demo";
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const PILOT_NEON_MUTATION_ROUTES = new Set(["/api/brands", "/api/products", "/api/listings", "/api/investigations"]);
+const PILOT_NEON_MUTATION_ROUTES = new Set(["/api/brands", "/api/products", "/api/listings", "/api/investigations", "/api/discovery"]);
 
 function isPilotNeonMutationRoute(pathname: string): boolean {
-  return PILOT_NEON_MUTATION_ROUTES.has(pathname) || /^\/api\/investigations\/[^/]+\/run$/.test(pathname) || /^\/api\/listings\/[^/]+\/assets$/.test(pathname);
+  return PILOT_NEON_MUTATION_ROUTES.has(pathname) || /^\/api\/investigations\/[^/]+\/(run|review|report)$/.test(pathname) || /^\/api\/listings\/[^/]+\/assets$/.test(pathname);
 }
 
 const clerkProxy = clerkMiddleware(async (_auth, request) => {
@@ -32,6 +32,9 @@ function isProviderOrMutationRoute(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
+  // Inngest validates its own signed webhook requests; Clerk must not intercept it.
+  if (request.nextUrl.pathname === "/api/inngest") return NextResponse.next();
+
   if (
     process.env.BRANDARMOR_RUNTIME_MODE === CONTROLLED_DEMO_RUNTIME_MODE &&
     MUTATION_METHODS.has(request.method) &&

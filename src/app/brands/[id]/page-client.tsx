@@ -63,14 +63,27 @@ export default function BrandDetailPage({
 function AddProductForm({ brandId, onDone }: { brandId: string; onDone: () => void }) {
   const [name, setName] = useState("");
   const [msrp, setMsrp] = useState("");
+  const [bpomNie, setBpomNie] = useState("");
   const [keywords, setKeywords] = useState("");
+  const [officialUrls, setOfficialUrls] = useState("");
+  const [officialImageUrls, setOfficialImageUrls] = useState("");
+  const [authorizedSellers, setAuthorizedSellers] = useState("");
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const requiredKeywords = keywords.split(",").flatMap((keyword) => {
-      const trimmed = keyword.trim();
+    const commaSeparated = (value: string) => value.split(",").flatMap((entry) => {
+      const trimmed = entry.trim();
       return trimmed ? [trimmed] : [];
     });
-    const res = await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brandId, name, msrp: msrp ? Number(msrp) : null, requiredKeywords }) });
+    const res = await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      brandId,
+      name,
+      msrp: msrp ? Number(msrp) : null,
+      bpomNie: bpomNie || null,
+      requiredKeywords: commaSeparated(keywords),
+      officialUrls: commaSeparated(officialUrls),
+      officialImageUrls: commaSeparated(officialImageUrls),
+      authorizedSellers: commaSeparated(authorizedSellers),
+    }) });
     if (res.ok) { toast.success("Product added"); onDone(); } else { toast.error("Failed to add product"); }
   }
   return (
@@ -79,9 +92,18 @@ function AddProductForm({ brandId, onDone }: { brandId: string; onDone: () => vo
       <input id="product-name" type="text" placeholder="Product name" value={name} onChange={e => setName(e.target.value)} required className="w-full px-3 py-2 border border-border rounded-md bg-background" />
       <label className="sr-only" htmlFor="product-msrp">MSRP</label>
       <input id="product-msrp" type="number" placeholder="MSRP" value={msrp} onChange={e => setMsrp(e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background" />
+      <label className="sr-only" htmlFor="product-bpom-nie">BPOM/NIE</label>
+      <input id="product-bpom-nie" type="text" placeholder="BPOM/NIE (optional)" value={bpomNie} onChange={e => setBpomNie(e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background" />
       <label className="sr-only" htmlFor="product-keywords">Required keywords</label>
-      <input id="product-keywords" type="text" placeholder="Required keywords (comma-separated)" value={keywords} onChange={e => setKeywords(e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background" />
-      <button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm">Save Product</button>
+      <input id="product-keywords" type="text" placeholder="Official keywords (comma-separated)" value={keywords} onChange={e => setKeywords(e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background" />
+      <label className="sr-only" htmlFor="product-official-urls">Official source URLs</label>
+      <input id="product-official-urls" type="text" placeholder="Official source URLs (comma-separated)" value={officialUrls} onChange={e => setOfficialUrls(e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background" />
+      <label className="sr-only" htmlFor="product-official-images">Official image URLs</label>
+      <input id="product-official-images" type="text" placeholder="Official image URLs (comma-separated)" value={officialImageUrls} onChange={e => setOfficialImageUrls(e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background" />
+      <label className="sr-only" htmlFor="product-authorized-sellers">Authorized sellers</label>
+      <input id="product-authorized-sellers" type="text" placeholder="Authorized sellers (comma-separated)" value={authorizedSellers} onChange={e => setAuthorizedSellers(e.target.value)} className="w-full px-3 py-2 border border-border rounded-md bg-background" />
+      <p className="text-xs text-muted-foreground">Add official references now; they become the durable baseline for evidence collection and scoring.</p>
+      <button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm">Save Product Baseline</button>
     </form>
   );
 }

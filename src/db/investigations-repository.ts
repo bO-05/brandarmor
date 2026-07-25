@@ -401,6 +401,83 @@ export async function runPilotInvestigation(
   return getPilotInvestigationState(actor.workspaceId, investigationId);
 }
 
+export async function updatePilotReviewDecision({
+  workspaceId,
+  investigationId,
+  reviewerUserId,
+  status,
+  notes,
+}: {
+  workspaceId: string;
+  investigationId: string;
+  reviewerUserId: string;
+  status: string;
+  notes: string | null;
+}): Promise<{ id: string; status: string; revision: number; updatedAt: string }> {
+  const db = getDatabase();
+  const [existing] = await db
+    .select()
+    .from(reviewDecisions)
+    .where(and(eq(reviewDecisions.workspaceId, workspaceId), eq(reviewDecisions.investigationId, investigationId)))
+    .limit(1);
+  if (!existing) throw new Error("Review decision not found. Run the investigation first.");
+
+  const [updated] = await db
+    .update(reviewDecisions)
+    .set({
+      status,
+      reviewerUserId,
+      notes,
+      revision: existing.revision + 1,
+    })
+    .where(and(eq(reviewDecisions.workspaceId, workspaceId), eq(reviewDecisions.id, existing.id)))
+    .returning();
+  const [latestReport] = await db
+    .select()
+    .from(reportVersions)
+    .where(and(eq(reportVersions.workspaceId, workspaceId), eq(reportVersions.investigationId, investigationId)))
+    .orderBy(desc(reportVersions.version))
+    .limit(1);
+  if (latestReport) {
+    const reportJson = {
+      ...(latestReport.reportJson as Record<string, unknown>),
+      review: { status: updated.status, notes: updated.notes, revision: updated.revision, updatedAt: updated.updatedAt.toISOString() },
+    };
+    const contentHash = fingerprint(reportJson);
+    const [alreadyVersioned] = await db
+      .select({ id: reportVersions.id })
+      .from(reportVersions)
+      .where(and(eq(reportVersions.workspaceId, workspaceId), eq(reportVersions.investigationId, investigationId), eq(reportVersions.contentHash, contentHash)))
+      .limit(1);
+    if (!alreadyVersioned) {
+      await db.insert(reportVersions).values({
+        workspaceId,
+        investigationId,
+        scoreSnapshotId: latestReport.scoreSnapshotId,
+        reviewDecisionId: updated.id,
+        version: latestReport.version + 1,
+        reportJson,
+        reportObjectKey: null,
+        contentHash,
+        lifecycleStatus: "active",
+        retentionUntil: latestReport.retentionUntil,
+        deletedAt: null,
+      });
+    }
+  }
+
+  await db.insert(auditEvents).values({
+    workspaceId,
+    actorUserId: reviewerUserId,
+    action: "review.updated",
+    entityType: "review_decision",
+    entityId: updated.id,
+    correlationId: investigationId,
+    safeMetadata: { status, revision: updated.revision },
+  });
+  return { id: updated.id, status: updated.status, revision: updated.revision, updatedAt: updated.updatedAt.toISOString() };
+}
+
 export async function getPilotReportForListing(workspaceId: string, listingId: string): Promise<{ reportJson: unknown; version: number; createdAt: string } | null> {
   const db = getDatabase();
   const [investigation] = await db
