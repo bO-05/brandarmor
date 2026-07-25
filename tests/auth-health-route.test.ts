@@ -22,6 +22,8 @@ describe("GET /api/health/auth", () => {
       clerkPublishableKeyConfigured: true,
       clerkSecretKeyConfigured: true,
       clerkServerConfigured: true,
+      privateBlobConfigured: false,
+      inngestConfigured: false,
     });
     expect(JSON.stringify(body)).not.toContain("pk_test_health_probe");
     expect(JSON.stringify(body)).not.toContain("sk_test_health_probe");
