@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getBrands, createBrand, seedDemoData } from "@/persistence/store";
 import { insertBrandSchema } from "@/domain/schemas";
 import { requirePilotAdminActor, requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { createPilotBrand, listPilotBrands } from "@/db/brands-repository";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const access = await requirePilotWriteActor(request);
     if (!access.allowed) return access.response;
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   if (isControlledDemoMode()) {
     return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
   }

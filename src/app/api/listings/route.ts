@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getListings, getListing, createListing, createListingsBulk, getProduct, updateListing, enrichScoreReasons } from "@/persistence/store";
 import { insertListingSchema, linkListingProductSchema } from "@/domain/schemas";
 import { parseJsonImport } from "@/domain/import";
@@ -10,7 +10,7 @@ import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runti
 import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { createPilotListing, listPilotListings } from "@/db/listings-repository";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   if (isControlledDemoMode()) {
     return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
   }
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
   if (isControlledDemoMode()) {
     return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
   }

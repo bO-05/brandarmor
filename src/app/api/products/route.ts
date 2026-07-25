@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getProducts, createProduct } from "@/persistence/store";
 import { insertProductSchema } from "@/domain/schemas";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
@@ -6,7 +6,7 @@ import { requirePilotAdminActor, requirePilotWriteActor } from "@/lib/auth/route
 import { createPilotProductBaseline, listPilotProductBaselines } from "@/db/product-baselines-repository";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const brandId = searchParams.get("brandId");
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   if (isControlledDemoMode()) {
     return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
   }

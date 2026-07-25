@@ -22,7 +22,7 @@ export type PilotWriteGuard =
  * on Proxy alone: the resource-owning handler verifies configuration, identity,
  * organization, and role close to the mutation.
  */
-export async function requirePilotWriteActor(request?: Request): Promise<PilotWriteGuard> {
+export async function requirePilotWriteActor(request?: NextRequest): Promise<PilotWriteGuard> {
   if (!isPilotRuntime()) return { allowed: true, actor: null };
 
   if (!isClerkConfigured()) {
@@ -47,8 +47,12 @@ export async function requirePilotWriteActor(request?: Request): Promise<PilotWr
 
   let session: ReturnType<typeof getAuth>;
   try {
-    session = getAuth(request as NextRequest);
-  } catch {
+    session = getAuth(request);
+  } catch (error) {
+    console.error("BrandArmor Clerk request verification failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "Unknown Clerk verification error",
+    });
     return {
       allowed: false,
       response: NextResponse.json({
@@ -128,7 +132,7 @@ export async function requirePilotWriteActor(request?: Request): Promise<PilotWr
   }
 }
 
-export async function requirePilotAdminActor(request?: Request): Promise<PilotWriteGuard> {
+export async function requirePilotAdminActor(request?: NextRequest): Promise<PilotWriteGuard> {
   const access = await requirePilotWriteActor(request);
   if (!access.allowed || !access.actor?.workspaceId) return access;
   if (access.actor.role !== "admin") {
