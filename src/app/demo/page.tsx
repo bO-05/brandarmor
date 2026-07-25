@@ -145,7 +145,10 @@ export default function DemoPage() {
   }) : null, [judge, result]);
 
   const isControlledDemo = readiness?.mutationsEnabled === false;
-  const isPilot = readiness?.runtimeMode === "pilot";
+  // Never expose the legacy seeded-demo action before readiness resolves. In an
+  // unauthenticated pilot session the protected readiness route intentionally
+  // returns no pilot details, so the safe durable-workflow entry remains visible.
+  const isPilot = !readiness || readiness.runtimeMode === "pilot";
 
   const steps: Array<{ title: string; detail: string; icon: ComponentType<{ className?: string }>; state: OperationState }> = [
     {
