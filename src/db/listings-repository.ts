@@ -2,6 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 
 import type { InsertListing } from "@/domain/schemas";
 import type { Listing } from "@/domain/types";
+import { stripEvaluationLabels } from "@/domain/operational-boundary";
 
 import { getDatabase } from "./index";
 import { listings } from "./schema";
@@ -37,7 +38,7 @@ function mapListing(row: typeof listings.$inferSelect): Listing {
     rightsStatus: row.rightsStatus,
     limitations: row.limitations,
     observedAt: row.observedAt.toISOString(),
-    rawSource: row.rawSource,
+    rawSource: stripEvaluationLabels(row.rawSource),
     sourceType: row.sourceType,
     ocrStatus: "not_requested",
     ocrRequestedAt: null,
@@ -66,7 +67,7 @@ export async function createPilotListing(workspaceId: string, input: InsertListi
       rightsStatus: input.rightsStatus ?? "unknown",
       limitations: input.limitations ?? [],
       observedAt: new Date(input.observedAt),
-      rawSource: input.rawSource ?? null,
+      rawSource: stripEvaluationLabels(input.rawSource ?? null),
       sourceType: input.sourceType,
     })
     .returning();

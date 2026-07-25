@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { and, asc, desc, eq } from "drizzle-orm";
 
 import { computeScore, SCORING_VERSION } from "@/domain/scoring";
+import { stripEvaluationLabels } from "@/domain/operational-boundary";
 import type { Evidence, Listing, Product, Score } from "@/domain/types";
 import { runLlmJudge } from "@/lib/llm-judge";
 import { processMistralOcr } from "@/lib/mistral-ocr";
@@ -107,7 +108,8 @@ export async function createOrReusePilotInvestigation(
   product: Product | null,
 ): Promise<{ state: PilotInvestigationState; created: boolean }> {
   const db = getDatabase();
-  const inputFingerprint = fingerprint({ listing, product, workflowVersion: "pilot-v1" });
+  const safeListing = { ...listing, rawSource: stripEvaluationLabels(listing.rawSource) };
+  const inputFingerprint = fingerprint({ listing: safeListing, product, workflowVersion: "pilot-v1" });
 
   const [before] = await db
     .select({ id: investigations.id })
@@ -125,7 +127,7 @@ export async function createOrReusePilotInvestigation(
         workspaceId: actor.workspaceId,
         listingId: listing.id,
         productBaselineId: product?.id ?? null,
-        listingSnapshot: listing,
+        listingSnapshot: safeListing,
         baselineSnapshot: product,
         status: "queued",
         inputFingerprint,
