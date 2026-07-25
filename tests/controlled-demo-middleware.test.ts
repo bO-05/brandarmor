@@ -28,6 +28,8 @@ describe("controlled demo middleware", () => {
       "/api/visual/compare",
       "/api/assessments/run",
       "/api/evaluation",
+      "/api/investigations",
+      "/api/investigations/00000000-0000-4000-8000-000000000001/run",
       "/api/seed",
     ]) {
       for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {

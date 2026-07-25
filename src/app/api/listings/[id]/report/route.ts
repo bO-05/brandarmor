@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { buildCaseReport } from "@/lib/case-report";
+import { getPilotReportForListing } from "@/db/investigations-repository";
+import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import {
   getEvidence,
@@ -24,12 +26,28 @@ function filenameFor(listingId: string, format: "json" | "pdf"): string {
   return `brandarmor-evidence-report-${safeId}.${format}`;
 }
 
-export async function GET(request: Request, context: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   const { id: listingId } = await context.params;
   const format = new URL(request.url).searchParams.get("format") ?? "json";
 
   if (format !== "json" && format !== "pdf") {
     return NextResponse.json({ error: "format must be json or pdf" }, { status: 400 });
+  }
+
+  const access = await requirePilotWriteActor(request);
+  if (!access.allowed) return access.response;
+  if (access.actor?.workspaceId) {
+    const report = await getPilotReportForListing(access.actor.workspaceId, listingId);
+    if (!report) return NextResponse.json({ error: "Durable report not found. Run the investigation first." }, { status: 404 });
+    if (format === "pdf") {
+      return NextResponse.json({ error: "PDF export is not available for the durable pilot report yet. Download JSON evidence report instead." }, { status: 501 });
+    }
+    return NextResponse.json(report.reportJson, {
+      headers: {
+        "Content-Disposition": `attachment; filename="${filenameFor(listingId, "json")}"`,
+        "Cache-Control": "no-store",
+      },
+    });
   }
 
   ensureDemoSeeded();

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PlayCircle, Plus, Search, Upload } from "lucide-react";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
@@ -13,8 +14,28 @@ export default function ListingsPage({
   initialListings: Listing[];
   initialScores: Score[];
 }) {
+  const [loadedListings, setLoadedListings] = useState(initialListings);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/listings", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error ?? "Could not load listings.");
+        return body as Listing[];
+      })
+      .then((nextListings) => {
+        if (active) setLoadedListings(nextListings);
+      })
+      .catch((error) => {
+        if (active) setLoadError(error instanceof Error ? error.message : "Could not load listings.");
+      });
+    return () => { active = false; };
+  }, []);
+
   const scoresMap = new Map(initialScores.map((s) => [s.listingId, s]));
-  const listings = initialListings.map((l) => ({
+  const listings = loadedListings.map((l) => ({
     ...l,
     score: scoresMap.get(l.id)?.totalScore,
     riskLevel: scoresMap.get(l.id)?.riskLevel,
@@ -31,6 +52,8 @@ export default function ListingsPage({
           <Link href="/listings/import" className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm"><Upload className="size-4" /> Import</Link>
         </div>
       </div>
+
+      {loadError ? <p role="alert" className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{loadError}</p> : null}
 
       {listings.length === 0 ? (
         <div className="surface-card rounded-lg p-12 text-center">

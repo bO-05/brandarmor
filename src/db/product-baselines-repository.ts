@@ -72,6 +72,17 @@ export async function createPilotProductBaseline(workspaceId: string, input: Ins
   return mapProduct(created);
 }
 
+export async function getPilotProductBaseline(workspaceId: string, productId: string): Promise<Product | null> {
+  const db = getDatabase();
+  const [row] = await db
+    .select()
+    .from(productBaselines)
+    .where(and(eq(productBaselines.workspaceId, workspaceId), eq(productBaselines.id, productId)))
+    .limit(1);
+
+  return row ? mapProduct(row) : null;
+}
+
 export async function listPilotProductBaselines(workspaceId: string, brandId?: string | null): Promise<Product[]> {
   const db = getDatabase();
   const rows = await db

@@ -9,6 +9,8 @@ import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { createPilotListing, listPilotListings } from "@/db/listings-repository";
+import { getPilotProductBaseline } from "@/db/product-baselines-repository";
+import { createOrReusePilotInvestigation } from "@/db/investigations-repository";
 
 export async function GET(request: NextRequest) {
   try {
@@ -74,9 +76,23 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
     }
-    if (access.actor?.workspaceId) {
+    if (access.actor?.workspaceId && access.actor.userId) {
       const listing = await createPilotListing(access.actor.workspaceId, parsed.data);
-      return NextResponse.json(listing, { status: 201 });
+      const baseline = listing.productId
+        ? await getPilotProductBaseline(access.actor.workspaceId, listing.productId)
+        : null;
+      const investigation = await createOrReusePilotInvestigation(
+        { workspaceId: access.actor.workspaceId, userId: access.actor.userId },
+        listing,
+        baseline,
+      );
+      return NextResponse.json({
+        listing,
+        investigation: investigation.state,
+        investigationCreated: investigation.created,
+        runUrl: `/api/investigations/${investigation.state.investigation.id}/run`,
+        statusUrl: `/api/investigations/${investigation.state.investigation.id}`,
+      }, { status: 201 });
     }
 
     const listing = createListing(parsed.data);

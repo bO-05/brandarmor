@@ -63,9 +63,13 @@ export default function NewListingPage() {
           observedAt: new Date().toISOString(),
         }),
       });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.error || "Failed"); }
-      toast.success("Listing created");
-      router.push("/listings");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      const listingId = data.listing?.id ?? data.id;
+      if (!listingId) throw new Error("Listing was created without an identifier.");
+      toast.success("Listing created. Investigation is queued.");
+      router.push(`/listings/${listingId}`);
+      router.refresh();
     } catch (e) { toast.error((e as Error).message); } finally { setLoading(false); }
   }
 

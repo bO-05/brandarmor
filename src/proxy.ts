@@ -5,13 +5,18 @@ import { isClerkConfigured, isPilotRuntime } from "@/lib/auth/config";
 
 const CONTROLLED_DEMO_RUNTIME_MODE = "controlled_demo";
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const PILOT_NEON_MUTATION_ROUTES = new Set(["/api/brands", "/api/products", "/api/listings"]);
+const PILOT_NEON_MUTATION_ROUTES = new Set(["/api/brands", "/api/products", "/api/listings", "/api/investigations"]);
+
+function isPilotNeonMutationRoute(pathname: string): boolean {
+  return PILOT_NEON_MUTATION_ROUTES.has(pathname) || /^\/api\/investigations\/[^/]+\/run$/.test(pathname);
+}
+
 const clerkProxy = clerkMiddleware(async (_auth, request) => {
   if (
     isPilotRuntime() &&
     MUTATION_METHODS.has(request.method) &&
     request.nextUrl.pathname.startsWith("/api/") &&
-    !PILOT_NEON_MUTATION_ROUTES.has(request.nextUrl.pathname)
+    !isPilotNeonMutationRoute(request.nextUrl.pathname)
   ) {
     return NextResponse.json({
       error: "This pilot route has not completed its Neon-backed cutover.",
@@ -43,7 +48,7 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     isPilotRuntime() &&
     MUTATION_METHODS.has(request.method) &&
     request.nextUrl.pathname.startsWith("/api/") &&
-    !PILOT_NEON_MUTATION_ROUTES.has(request.nextUrl.pathname)
+    !isPilotNeonMutationRoute(request.nextUrl.pathname)
   ) {
     return NextResponse.json({
       error: "This pilot route has not completed its Neon-backed cutover.",

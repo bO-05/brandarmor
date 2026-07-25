@@ -74,6 +74,17 @@ export async function createPilotListing(workspaceId: string, input: InsertListi
   return mapListing(created);
 }
 
+export async function getPilotListing(workspaceId: string, listingId: string): Promise<Listing | null> {
+  const db = getDatabase();
+  const [row] = await db
+    .select()
+    .from(listings)
+    .where(and(eq(listings.workspaceId, workspaceId), eq(listings.id, listingId)))
+    .limit(1);
+
+  return row ? mapListing(row) : null;
+}
+
 export async function listPilotListings(workspaceId: string, productId?: string | null): Promise<Listing[]> {
   const db = getDatabase();
   const rows = await db
