@@ -444,6 +444,27 @@ export const reportVersions = pgTable(
   ],
 );
 
+export const evaluationCases = pgTable(
+  "evaluation_cases",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    datasetVersion: text("dataset_version").notNull(),
+    externalCaseId: text("external_case_id").notNull(),
+    listingSnapshot: jsonb("listing_snapshot").notNull(),
+    baselineSnapshot: jsonb("baseline_snapshot"),
+    reviewedLabel: text("reviewed_label").notNull(),
+    reviewerEvidenceRef: text("reviewer_evidence_ref").notNull(),
+    provenance: jsonb("provenance").notNull(),
+    ambiguous: integer("ambiguous").notNull().default(0),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }).notNull(),
+    createdAt,
+  },
+  (table) => [
+    uniqueIndex("evaluation_cases_dataset_external_case_unique").on(table.datasetVersion, table.externalCaseId),
+    index("evaluation_cases_dataset_idx").on(table.datasetVersion),
+  ],
+);
+
 export const idempotencyKeys = pgTable(
   "idempotency_keys",
   {

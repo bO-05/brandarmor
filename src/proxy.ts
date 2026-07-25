@@ -5,7 +5,7 @@ import { isClerkConfigured, isPilotRuntime } from "@/lib/auth/config";
 
 const CONTROLLED_DEMO_RUNTIME_MODE = "controlled_demo";
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const PILOT_NEON_MUTATION_ROUTES = new Set(["/api/brands", "/api/products", "/api/listings", "/api/investigations", "/api/discovery"]);
+const PILOT_NEON_MUTATION_ROUTES = new Set(["/api/brands", "/api/products", "/api/listings", "/api/investigations", "/api/discovery", "/api/evaluation"]);
 
 function isPilotNeonMutationRoute(pathname: string): boolean {
   return PILOT_NEON_MUTATION_ROUTES.has(pathname) || /^\/api\/investigations\/[^/]+\/(run|review|report)$/.test(pathname) || /^\/api\/listings\/[^/]+\/assets$/.test(pathname);
