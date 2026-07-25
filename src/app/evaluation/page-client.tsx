@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, BarChart3, Gauge, PlayCircle, Plus, RefreshCw, ShieldAlert, Upload } from "lucide-react";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
@@ -105,6 +105,9 @@ function evaluationReducer(state: EvaluationState, action: EvaluationAction): Ev
 
 export default function EvaluationPage() {
   const [state, dispatch] = useReducer(evaluationReducer, initialEvaluationState);
+  const [reviewedCasesJson, setReviewedCasesJson] = useState("");
+  const [importingReviewedCases, setImportingReviewedCases] = useState(false);
+  const [reviewedCasesMessage, setReviewedCasesMessage] = useState<string | null>(null);
   const { data, loading, error, showTechnicalTable, listingCount, reviewDecisionCount } = state;
 
   async function load(compute: boolean = true) {
@@ -139,6 +142,28 @@ export default function EvaluationPage() {
 
   useEffect(() => { load(); }, []);
 
+  async function importReviewedCases() {
+    setImportingReviewedCases(true);
+    setReviewedCasesMessage(null);
+    try {
+      const parsed = JSON.parse(reviewedCasesJson);
+      const response = await fetch("/api/evaluation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Could not import reviewed cases.");
+      setReviewedCasesMessage(`${body.created} independently reviewed case(s) imported into the isolated evaluation dataset.`);
+      setReviewedCasesJson("");
+      await load(true);
+    } catch (importError) {
+      setReviewedCasesMessage(importError instanceof Error ? importError.message : "Could not import reviewed cases.");
+    } finally {
+      setImportingReviewedCases(false);
+    }
+  }
+
   if (loading) return <div className="max-w-5xl mx-auto"><h1 className="text-2xl font-bold mb-6">Evaluation</h1><p>Computing pilot metrics&hellip;</p></div>;
   if (!data) return null;
 
@@ -170,6 +195,13 @@ export default function EvaluationPage() {
           <p className="mt-1 leading-6">{diagnosticDatasetLabel}. Precision, recall, false-positive rate, and F1 remain internal regression signals until an independently reviewed, provenance-documented holdout set exists.</p>
         </section>
       )}
+
+      <details className="mb-5 rounded-lg border border-border bg-card p-4">
+        <summary className="cursor-pointer font-semibold">Import independently reviewed holdout cases</summary>
+        <p className="mt-2 text-sm text-muted-foreground">Admin-only. This dataset is isolated from operational listings, evidence, scoring, judges, and reports. Each entry needs datasetVersion, externalCaseId, listingSnapshot, reviewedLabel, reviewerEvidenceRef, provenance, ambiguity flag, and reviewedAt. See docs/PILOT_ACCEPTANCE.md for the contract.</p>
+        <textarea value={reviewedCasesJson} onChange={(event) => setReviewedCasesJson(event.target.value)} placeholder={'[{"datasetVersion":"v1","externalCaseId":"case-001","listingSnapshot":{},"reviewedLabel":"insufficient_evidence","reviewerEvidenceRef":"review-record-001","provenance":{"rights":"documented"},"ambiguous":true,"reviewedAt":"2026-07-25T00:00:00.000Z"}]'} rows={7} className="mt-3 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs" />
+        <div className="mt-3 flex items-center gap-3"><button type="button" onClick={() => void importReviewedCases()} disabled={importingReviewedCases || !reviewedCasesJson.trim()} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">{importingReviewedCases ? "Importing…" : "Import reviewed cases"}</button>{reviewedCasesMessage ? <p role="status" className="text-sm text-muted-foreground">{reviewedCasesMessage}</p> : null}</div>
+      </details>
 
       {error && (
         <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
