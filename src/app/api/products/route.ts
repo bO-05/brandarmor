@@ -10,7 +10,8 @@ import { enforcePilotRateLimit, PilotRateLimitError } from "@/lib/pilot-controls
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const brandId = searchParams.get("brandId");
+    const candidateBrandId = searchParams.get("brandId");
+    const brandId = candidateBrandId && candidateBrandId !== "undefined" && candidateBrandId !== "null" ? candidateBrandId : null;
     const access = await requirePilotWriteActor(request);
     if (!access.allowed) return access.response;
     if (access.actor?.workspaceId) {

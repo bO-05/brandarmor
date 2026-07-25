@@ -5,6 +5,7 @@ export const metadata = {
   description: "Manage product baselines for a BrandArmor brand.",
 };
 
-export default function Page({ params }: { params: { id: string } }) {
-  return <BrandDetailPage brandId={params.id} initialBrand={null} initialProducts={[]} />;
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <BrandDetailPage brandId={id} initialBrand={null} initialProducts={[]} />;
 }
