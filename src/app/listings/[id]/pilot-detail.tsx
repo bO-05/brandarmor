@@ -24,6 +24,15 @@ type InvestigationState = {
     startedAt: string | null;
     completedAt: string | null;
   }>;
+  assets: Array<{
+    id: string;
+    contentType: string;
+    sizeBytes: number;
+    provenance: string;
+    retentionUntil: string | null;
+    createdAt: string;
+    viewUrl: string;
+  }>;
   evidence: Array<{
     id: string;
     evidenceType: string;
@@ -59,10 +68,12 @@ function stageTone(status: string): string {
 export default function PilotListingDetail({ listingId }: { listingId: string }) {
   const [listing, setListing] = useState<Listing | null>(null);
   const [investigation, setInvestigation] = useState<InvestigationState | null>(null);
+  const [assets, setAssets] = useState<InvestigationState["assets"]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [reviewStatus, setReviewStatus] = useState("pending");
   const [reviewNotes, setReviewNotes] = useState("");
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -72,6 +83,10 @@ export default function PilotListingDetail({ listingId }: { listingId: string })
       const listingJson = await listingResponse.json();
       if (!listingResponse.ok) throw new Error(listingJson.error ?? "Listing not found.");
       setListing(listingJson);
+      const assetsResponse = await fetch(`/api/listings/${listingId}/assets`, { cache: "no-store" });
+      const assetsJson = await assetsResponse.json();
+      if (!assetsResponse.ok) throw new Error(assetsJson.error ?? "Could not load private case assets.");
+      setAssets(Array.isArray(assetsJson) ? assetsJson : []);
 
       const investigationResponse = await fetch(`/api/listings/${listingId}/investigation`, { cache: "no-store" });
       if (investigationResponse.status === 404) {
@@ -122,6 +137,28 @@ export default function PilotListingDetail({ listingId }: { listingId: string })
       setMessage("Durable investigation completed with explicit partial-provider status.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not run the durable investigation.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function uploadPrivateScreenshot() {
+    if (!screenshotFile) {
+      setMessage("Choose a JPEG, PNG, or WebP screenshot first.");
+      return;
+    }
+    setRunning(true);
+    try {
+      const form = new FormData();
+      form.set("file", screenshotFile);
+      const response = await fetch(`/api/listings/${listingId}/assets`, { method: "POST", body: form });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Could not upload private screenshot.");
+      setScreenshotFile(null);
+      await load();
+      setMessage("Private screenshot saved. Resume the workflow to collect provider evidence.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not upload private screenshot.");
     } finally {
       setRunning(false);
     }
@@ -186,6 +223,13 @@ export default function PilotListingDetail({ listingId }: { listingId: string })
         </div>
         {message ? <p role="status" className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-sm">{message}</p> : null}
       </header>
+
+      <section className="mt-5 rounded-lg border border-border bg-card p-6">
+        <h2 className="font-semibold">Private screenshots</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Screenshots are stored in private case storage and are delivered only through authenticated routes.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-3"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setScreenshotFile(event.target.files?.[0] ?? null)} className="text-sm" /><button type="button" onClick={() => void uploadPrivateScreenshot()} disabled={running || !screenshotFile} className="rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground disabled:opacity-60">Upload private screenshot</button></div>
+        {assets.length ? <ul className="mt-4 space-y-2 text-sm">{assets.map((asset) => <li key={asset.id} className="rounded-md border border-border bg-background p-3"><a href={asset.viewUrl} className="font-semibold text-primary">Private screenshot</a><span className="ml-2 text-muted-foreground">{Math.round(asset.sizeBytes / 1024)} KB · retained until {asset.retentionUntil ? new Date(asset.retentionUntil).toLocaleDateString() : "manual deletion"}</span></li>)}</ul> : <p className="mt-4 text-sm text-muted-foreground">No private screenshot attached yet.</p>}
+      </section>
 
       <section className="mt-5 rounded-lg border border-border bg-card p-6">
         <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-primary" /> Evidence stages</h2>

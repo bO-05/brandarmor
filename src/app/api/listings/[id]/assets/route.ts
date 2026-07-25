@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { put } from "@vercel/blob";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { createPilotCaseAsset } from "@/db/case-assets-repository";
+import { createPilotCaseAsset, listPilotCaseAssets } from "@/db/case-assets-repository";
 import { getDatabase } from "@/db";
 import { auditEvents } from "@/db/schema";
 import { getPilotListing } from "@/db/listings-repository";
@@ -18,6 +18,28 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 function configuredPrivateBlobStore(): boolean {
   return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN);
+}
+
+export async function GET(request: NextRequest, context: RouteContext) {
+  const access = await requirePilotWriteActor(request);
+  if (!access.allowed) return access.response;
+  if (!access.actor?.workspaceId) {
+    return NextResponse.json({ error: "Pilot workspace context is required.", code: "pilot_workspace_required" }, { status: 403 });
+  }
+
+  const { id: listingId } = await context.params;
+  const listing = await getPilotListing(access.actor.workspaceId, listingId);
+  if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  const assets = await listPilotCaseAssets(access.actor.workspaceId, listingId);
+  return NextResponse.json(assets.filter((asset) => !asset.deletedAt).map((asset) => ({
+    id: asset.id,
+    contentType: asset.contentType,
+    sizeBytes: asset.sizeBytes,
+    provenance: asset.provenance,
+    retentionUntil: asset.retentionUntil?.toISOString() ?? null,
+    createdAt: asset.createdAt.toISOString(),
+    viewUrl: `/api/assets/${asset.id}`,
+  })), { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
