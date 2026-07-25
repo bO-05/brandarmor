@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 
-import { proxy } from "../proxy";
+import { proxy } from "../src/proxy";
 
 /**
  * Public HTTP boundary: Next middleware for /api/*.
