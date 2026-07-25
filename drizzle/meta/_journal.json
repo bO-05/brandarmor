@@ -29,6 +29,13 @@
       "when": 1784899748072,
       "tag": "0003_updated_at_clock_timestamp",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784964078777,
+      "tag": "0004_complex_husk",
+      "breakpoints": true
     }
   ]
 }

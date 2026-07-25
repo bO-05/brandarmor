@@ -6,6 +6,7 @@ import { getPilotListing } from "@/db/listings-repository";
 import { createOrReusePilotInvestigation } from "@/db/investigations-repository";
 import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
+import { enforcePilotRateLimit, PilotRateLimitError } from "@/lib/pilot-controls";
 
 const investigationRequestSchema = z.object({ listingId: z.string().uuid() });
 
@@ -21,6 +22,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await enforcePilotRateLimit({
+      workspaceId: access.actor.workspaceId,
+      userId: access.actor.userId,
+      scope: "investigation.queue",
+      limit: 20,
+      windowSeconds: 60 * 60,
+    });
     const parsed = investigationRequestSchema.safeParse(await request.json());
     if (!parsed.success) {
       return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
@@ -43,6 +51,9 @@ export async function POST(request: NextRequest) {
       statusUrl: `/api/investigations/${result.state.investigation.id}`,
     }, { status: result.created ? 202 : 200 });
   } catch (error) {
+    if (error instanceof PilotRateLimitError) {
+      return NextResponse.json({ error: error.message, code: "pilot_rate_limited" }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not queue investigation." }, { status: 500 });
   }
 }

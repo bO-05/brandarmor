@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { runPilotInvestigation } from "@/db/investigations-repository";
 import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
+import { enforcePilotRateLimit, PilotRateLimitError } from "@/lib/pilot-controls";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -18,10 +19,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   try {
+    await enforcePilotRateLimit({
+      workspaceId: access.actor.workspaceId,
+      userId: access.actor.userId,
+      scope: "investigation.run",
+      limit: 10,
+      windowSeconds: 60 * 60,
+    });
     const { id } = await context.params;
     const state = await runPilotInvestigation({ workspaceId: access.actor.workspaceId, userId: access.actor.userId }, id);
     return NextResponse.json(state, { status: 200, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if (error instanceof PilotRateLimitError) {
+      return NextResponse.json({ error: error.message, code: "pilot_rate_limited" }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not run investigation." }, { status: 500 });
   }
 }

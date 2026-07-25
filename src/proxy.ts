@@ -8,7 +8,7 @@ const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const PILOT_NEON_MUTATION_ROUTES = new Set(["/api/brands", "/api/products", "/api/listings", "/api/investigations"]);
 
 function isPilotNeonMutationRoute(pathname: string): boolean {
-  return PILOT_NEON_MUTATION_ROUTES.has(pathname) || /^\/api\/investigations\/[^/]+\/run$/.test(pathname);
+  return PILOT_NEON_MUTATION_ROUTES.has(pathname) || /^\/api\/investigations\/[^/]+\/run$/.test(pathname) || /^\/api\/listings\/[^/]+\/assets$/.test(pathname);
 }
 
 const clerkProxy = clerkMiddleware(async (_auth, request) => {

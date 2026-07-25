@@ -6,6 +6,7 @@ import { computeScore, SCORING_VERSION } from "@/domain/scoring";
 import type { Listing, Product, Score } from "@/domain/types";
 
 import { getDatabase } from "./index";
+import { listPilotCaseAssets } from "./case-assets-repository";
 import {
   auditEvents,
   evidenceItems,
@@ -241,9 +242,17 @@ export async function runPilotInvestigation(
     .where(and(eq(investigations.workspaceId, actor.workspaceId), eq(investigations.id, investigationId)));
 
   await updateStage(actor.workspaceId, investigationId, "intake", "running");
-  await db
-    .insert(evidenceItems)
-    .values({
+  const [existingIntakeEvidence] = await db
+    .select({ id: evidenceItems.id })
+    .from(evidenceItems)
+    .where(and(
+      eq(evidenceItems.workspaceId, actor.workspaceId),
+      eq(evidenceItems.investigationId, investigationId),
+      eq(evidenceItems.fieldName, "listing_snapshot"),
+    ))
+    .limit(1);
+  if (!existingIntakeEvidence) {
+    await db.insert(evidenceItems).values({
       workspaceId: actor.workspaceId,
       investigationId,
       providerRunId: null,
@@ -255,20 +264,40 @@ export async function runPilotInvestigation(
       collectionStatus: "collected",
       provenance: listing.rightsStatus,
       notes: "Persisted user-provided listing snapshot.",
-    })
-    .onConflictDoNothing({ target: [evidenceItems.investigationId, evidenceItems.providerRunId, evidenceItems.fieldName] });
+    });
+  }
   await updateStage(actor.workspaceId, investigationId, "intake", "succeeded");
 
-  // The first durable slice does not claim providers ran when no private asset or
-  // provider request exists. It records explicit partial state rather than adding risk.
-  await updateStage(actor.workspaceId, investigationId, "ocr", "skipped", "No private image asset is attached yet.");
+  // Do not claim a provider ran when only a private upload exists. The durable
+  // state makes the asset available to a later worker and communicates the gap
+  // as partial evidence, rather than converting missing data into counterfeit risk.
+  const assets = await listPilotCaseAssets(actor.workspaceId, investigation.listingId);
+  await updateStage(
+    actor.workspaceId,
+    investigationId,
+    "ocr",
+    assets.length ? "partial" : "skipped",
+    assets.length ? "Private screenshot is stored; OCR worker has not run yet." : "No private image asset is attached yet.",
+  );
   await updateStage(actor.workspaceId, investigationId, "regulatory", "skipped", "No extracted identifier is available for a provider query.");
-  await updateStage(actor.workspaceId, investigationId, "visual", "skipped", "No private image asset and reference comparison are available yet.");
+  await updateStage(
+    actor.workspaceId,
+    investigationId,
+    "visual",
+    assets.length ? "partial" : "skipped",
+    assets.length ? "Private screenshot is stored; visual comparison worker has not run yet." : "No private image asset and reference comparison are available yet.",
+  );
 
   await updateStage(actor.workspaceId, investigationId, "scoring", "running");
   const score = computeScore(listing, product ?? undefined);
   const snapshot = toScoreSnapshot(score);
-  const evidenceSetHash = fingerprint({ listing, product, score: snapshot, workflowVersion: "pilot-v1" });
+  const evidenceSetHash = fingerprint({
+    listing,
+    product,
+    score: snapshot,
+    caseAssets: assets.map((asset) => ({ id: asset.id, sha256: asset.sha256 })),
+    workflowVersion: "pilot-v1",
+  });
   await db
     .insert(scoreSnapshots)
     .values({
@@ -303,7 +332,7 @@ export async function runPilotInvestigation(
       notes: "Awaiting human review; provider evidence is incomplete.",
       revision: 1,
     })
-    .onConflictDoNothing();
+    .onConflictDoNothing({ target: reviewDecisions.investigationId });
   await updateStage(actor.workspaceId, investigationId, "human_review", "partial", "Human review is required before any case label.");
 
   await updateStage(actor.workspaceId, investigationId, "report", "running");
@@ -312,6 +341,13 @@ export async function runPilotInvestigation(
     investigationId,
     listing,
     baseline: product,
+    privateCaseAssets: assets.map((asset) => ({
+      id: asset.id,
+      contentType: asset.contentType,
+      sizeBytes: asset.sizeBytes,
+      provenance: asset.provenance,
+      createdAt: asset.createdAt.toISOString(),
+    })),
     score: compactScore(scoreSnapshot),
     status: "completed_partial",
     limitations: [
@@ -320,22 +356,32 @@ export async function runPilotInvestigation(
     ],
   };
   const reportHash = fingerprint(reportJson);
-  await db
-    .insert(reportVersions)
-    .values({
+  const [existingReport] = await db
+    .select({ id: reportVersions.id })
+    .from(reportVersions)
+    .where(and(eq(reportVersions.workspaceId, actor.workspaceId), eq(reportVersions.investigationId, investigationId), eq(reportVersions.contentHash, reportHash)))
+    .limit(1);
+  if (!existingReport) {
+    const [latestReport] = await db
+      .select({ version: reportVersions.version })
+      .from(reportVersions)
+      .where(and(eq(reportVersions.workspaceId, actor.workspaceId), eq(reportVersions.investigationId, investigationId)))
+      .orderBy(desc(reportVersions.version))
+      .limit(1);
+    await db.insert(reportVersions).values({
       workspaceId: actor.workspaceId,
       investigationId,
       scoreSnapshotId: scoreSnapshot.id,
       reviewDecisionId: null,
-      version: 1,
+      version: (latestReport?.version ?? 0) + 1,
       reportJson,
       reportObjectKey: null,
       contentHash: reportHash,
       lifecycleStatus: "active",
       retentionUntil: null,
       deletedAt: null,
-    })
-    .onConflictDoNothing({ target: [reportVersions.investigationId, reportVersions.contentHash] });
+    });
+  }
   await updateStage(actor.workspaceId, investigationId, "report", "partial", "Report is a durable partial-evidence report.");
 
   await db

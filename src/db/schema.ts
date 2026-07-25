@@ -389,6 +389,7 @@ export const reviewDecisions = pgTable(
   },
   (table) => [
     uniqueIndex("review_decisions_id_workspace_unique").on(table.id, table.workspaceId),
+    uniqueIndex("review_decisions_investigation_unique").on(table.investigationId),
     index("review_decisions_investigation_idx").on(table.investigationId),
     index("review_decisions_workspace_idx").on(table.workspaceId),
     foreignKey({
