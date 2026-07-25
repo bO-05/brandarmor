@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import type { PilotActor } from "@/lib/auth/route-guard";
 
@@ -26,6 +26,16 @@ export type PilotWorkspaceAccess = {
  * membership at the application data boundary. An Organization admin may
  * bootstrap an empty workspace; ordinary members must already be mapped.
  */
+export async function assertPilotWorkspaceMembership(workspaceId: string, userId: string): Promise<void> {
+  const db = getDatabase();
+  const [membership] = await db
+    .select({ workspaceId: workspaceMembers.workspaceId })
+    .from(workspaceMembers)
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
+    .limit(1);
+  if (!membership) throw new PilotWorkspaceAccessError("pilot_workspace_membership_required", "The requested user does not belong to this BrandArmor workspace.");
+}
+
 export async function resolvePilotWorkspace(actor: PilotActor): Promise<PilotWorkspaceAccess> {
   const db = getDatabase();
   const [existingWorkspace] = await db

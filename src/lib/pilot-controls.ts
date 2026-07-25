@@ -1,7 +1,7 @@
-import { and, count, eq, gte } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 import { getDatabase } from "@/db";
-import { auditEvents } from "@/db/schema";
+import { auditEvents, rateLimitBuckets } from "@/db/schema";
 
 export class PilotRateLimitError extends Error {
   constructor(public readonly scope: string, public readonly retryAfterSeconds: number) {
@@ -24,18 +24,17 @@ export async function enforcePilotRateLimit({
   windowSeconds: number;
 }): Promise<void> {
   const db = getDatabase();
-  const cutoff = new Date(Date.now() - windowSeconds * 1_000);
+  const windowStart = new Date(Math.floor(Date.now() / (windowSeconds * 1_000)) * windowSeconds * 1_000);
   const action = `rate_limit.${scope}`;
-  const [usage] = await db
-    .select({ count: count() })
-    .from(auditEvents)
-    .where(and(
-      eq(auditEvents.workspaceId, workspaceId),
-      eq(auditEvents.actorUserId, userId),
-      eq(auditEvents.action, action),
-      gte(auditEvents.createdAt, cutoff),
-    ));
-  if ((usage?.count ?? 0) >= limit) throw new PilotRateLimitError(scope, windowSeconds);
+  const [bucket] = await db
+    .insert(rateLimitBuckets)
+    .values({ workspaceId, userId, scope, windowStart, count: 1 })
+    .onConflictDoUpdate({
+      target: [rateLimitBuckets.workspaceId, rateLimitBuckets.userId, rateLimitBuckets.scope, rateLimitBuckets.windowStart],
+      set: { count: sql`${rateLimitBuckets.count} + 1` },
+    })
+    .returning({ count: rateLimitBuckets.count });
+  if (!bucket || bucket.count > limit) throw new PilotRateLimitError(scope, windowSeconds);
 
   await db.insert(auditEvents).values({
     workspaceId,
@@ -44,6 +43,6 @@ export async function enforcePilotRateLimit({
     entityType: "rate_limit",
     entityId: null,
     correlationId: crypto.randomUUID(),
-    safeMetadata: { limit, windowSeconds },
+    safeMetadata: { limit, windowSeconds, windowStart: windowStart.toISOString(), count: bucket.count },
   });
 }

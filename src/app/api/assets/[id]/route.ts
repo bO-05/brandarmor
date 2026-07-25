@@ -28,6 +28,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       },
     });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not retrieve private case asset." }, { status: 500 });
+    console.error("BrandArmor private case asset retrieval failed", error);
+    return NextResponse.json({ error: "Could not retrieve private case asset.", code: "private_asset_retrieval_failed" }, { status: 500 });
   }
 }

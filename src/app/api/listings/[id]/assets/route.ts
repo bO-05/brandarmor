@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { put } from "@vercel/blob";
+import { and, eq } from "drizzle-orm";
+import { del, put } from "@vercel/blob";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { createPilotCaseAsset, listPilotCaseAssets } from "@/db/case-assets-repository";
+import { listPilotCaseAssets } from "@/db/case-assets-repository";
 import { getDatabase } from "@/db";
-import { auditEvents } from "@/db/schema";
+import { auditEvents, caseAssets } from "@/db/schema";
 import { getPilotListing } from "@/db/listings-repository";
 import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
@@ -91,39 +92,70 @@ export async function POST(request: NextRequest, context: RouteContext) {
       contentType: file.type,
     });
 
-    const asset = await createPilotCaseAsset(access.actor.workspaceId, {
-      listingId,
-      objectKey: blob.pathname,
-      contentType: file.type,
-      sizeBytes: file.size,
-      sha256,
-      provenance: "user_uploaded_screenshot",
-      retentionUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    });
-    await getDatabase().insert(auditEvents).values({
-      workspaceId: access.actor.workspaceId,
-      actorUserId: access.actor.userId,
-      action: "case_asset.uploaded",
-      entityType: "case_asset",
-      entityId: asset.id,
-      correlationId: listingId,
-      safeMetadata: { listingId, contentType: file.type, sizeBytes: file.size },
-    });
+    let asset;
+    try {
+      asset = await getDatabase().transaction(async (tx) => {
+        const [created] = await tx
+          .insert(caseAssets)
+          .values({
+            workspaceId: access.actor!.workspaceId!,
+            listingId,
+            objectKey: blob.pathname,
+            contentType: file.type,
+            sizeBytes: file.size,
+            sha256,
+            provenance: "user_uploaded_screenshot",
+            retentionUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            deletedAt: null,
+          })
+          .onConflictDoNothing({ target: [caseAssets.workspaceId, caseAssets.listingId, caseAssets.sha256] })
+          .returning();
+        const persisted = created ?? (await tx
+          .select()
+          .from(caseAssets)
+          .where(and(
+            eq(caseAssets.workspaceId, access.actor!.workspaceId!),
+            eq(caseAssets.listingId, listingId),
+            eq(caseAssets.sha256, sha256),
+          ))
+          .limit(1))[0];
+        if (!persisted) throw new Error("Private case asset persistence failed.");
+        if (created) {
+          await tx.insert(auditEvents).values({
+            workspaceId: access.actor!.workspaceId!,
+            actorUserId: access.actor!.userId!,
+            action: "case_asset.uploaded",
+            entityType: "case_asset",
+            entityId: persisted.id,
+            correlationId: listingId,
+            safeMetadata: { listingId, contentType: file.type, sizeBytes: file.size },
+          });
+        }
+        return { persisted, created: Boolean(created) };
+      });
+    } catch (persistenceError) {
+      try { await del(blob.pathname); } catch { /* retention worker can retry any orphan cleanup separately */ }
+      throw persistenceError;
+    }
+    if (!asset.created) {
+      try { await del(blob.pathname); } catch { /* duplicate upload leaves the existing persisted asset intact */ }
+    }
 
     return NextResponse.json({
       asset: {
-        id: asset.id,
-        contentType: asset.contentType,
-        sizeBytes: asset.sizeBytes,
-        provenance: asset.provenance,
-        createdAt: asset.createdAt.toISOString(),
+        id: asset.persisted.id,
+        contentType: asset.persisted.contentType,
+        sizeBytes: asset.persisted.sizeBytes,
+        provenance: asset.persisted.provenance,
+        createdAt: asset.persisted.createdAt.toISOString(),
       },
-      viewUrl: `/api/assets/${asset.id}`,
+      viewUrl: `/api/assets/${asset.persisted.id}`,
     }, { status: 201 });
   } catch (error) {
     if (error instanceof PilotRateLimitError) {
       return NextResponse.json({ error: error.message, code: "pilot_rate_limited" }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not store the private screenshot." }, { status: 500 });
+    console.error("BrandArmor private screenshot upload failed", error);
+    return NextResponse.json({ error: "Could not store the private screenshot.", code: "private_asset_upload_failed" }, { status: 500 });
   }
 }

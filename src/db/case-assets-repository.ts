@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 
 import { getDatabase } from "./index";
 import { caseAssets } from "./schema";
@@ -30,6 +30,7 @@ export async function getPilotCaseAsset(workspaceId: string, assetId: string) {
     .where(and(
       eq(caseAssets.workspaceId, workspaceId),
       eq(caseAssets.id, assetId),
+      isNull(caseAssets.deletedAt),
     ))
     .limit(1);
   return asset ?? null;
@@ -43,6 +44,7 @@ export async function listPilotCaseAssets(workspaceId: string, listingId: string
     .where(and(
       eq(caseAssets.workspaceId, workspaceId),
       eq(caseAssets.listingId, listingId),
+      isNull(caseAssets.deletedAt),
     ))
     .orderBy(desc(caseAssets.createdAt));
 }

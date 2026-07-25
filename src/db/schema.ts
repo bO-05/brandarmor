@@ -209,6 +209,7 @@ export const caseAssets = pgTable(
   (table) => [
     index("case_assets_listing_idx").on(table.listingId),
     index("case_assets_workspace_idx").on(table.workspaceId),
+    uniqueIndex("case_assets_workspace_listing_sha_unique").on(table.workspaceId, table.listingId, table.sha256),
     foreignKey({
       columns: [table.listingId, table.workspaceId],
       foreignColumns: [listings.id, listings.workspaceId],
@@ -448,6 +449,7 @@ export const evaluationCases = pgTable(
   "evaluation_cases",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
     datasetVersion: text("dataset_version").notNull(),
     externalCaseId: text("external_case_id").notNull(),
     listingSnapshot: jsonb("listing_snapshot").notNull(),
@@ -460,8 +462,8 @@ export const evaluationCases = pgTable(
     createdAt,
   },
   (table) => [
-    uniqueIndex("evaluation_cases_dataset_external_case_unique").on(table.datasetVersion, table.externalCaseId),
-    index("evaluation_cases_dataset_idx").on(table.datasetVersion),
+    uniqueIndex("evaluation_cases_workspace_dataset_external_case_unique").on(table.workspaceId, table.datasetVersion, table.externalCaseId),
+    index("evaluation_cases_workspace_dataset_idx").on(table.workspaceId, table.datasetVersion),
   ],
 );
 
@@ -479,6 +481,20 @@ export const idempotencyKeys = pgTable(
     createdAt,
   },
   (table) => [uniqueIndex("idempotency_keys_workspace_endpoint_key_unique").on(table.workspaceId, table.endpoint, table.key)],
+);
+
+export const rateLimitBuckets = pgTable(
+  "rate_limit_buckets",
+  {
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    scope: text("scope").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull().default(0),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [primaryKey({ columns: [table.workspaceId, table.userId, table.scope, table.windowStart] })],
 );
 
 export const auditEvents = pgTable(

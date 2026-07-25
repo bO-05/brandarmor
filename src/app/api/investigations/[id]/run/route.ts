@@ -33,6 +33,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (error instanceof PilotRateLimitError) {
       return NextResponse.json({ error: error.message, code: "pilot_rate_limited" }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not run investigation." }, { status: 500 });
+    console.error("BrandArmor investigation run failed", error);
+    return NextResponse.json({ error: "Could not run investigation.", code: "investigation_run_failed" }, { status: 500 });
   }
 }

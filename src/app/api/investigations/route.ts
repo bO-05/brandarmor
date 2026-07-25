@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const parsed = investigationRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
+    }
     await enforcePilotRateLimit({
       workspaceId: access.actor.workspaceId,
       userId: access.actor.userId,
@@ -30,10 +34,6 @@ export async function POST(request: NextRequest) {
       limit: 20,
       windowSeconds: 60 * 60,
     });
-    const parsed = investigationRequestSchema.safeParse(await request.json());
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
-    }
 
     const listing = await getPilotListing(access.actor.workspaceId, parsed.data.listingId);
     if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
@@ -47,19 +47,25 @@ export async function POST(request: NextRequest) {
       baseline,
     );
     const inngestConfigured = isInngestConfigured();
-    if (result.created && inngestConfigured) {
-      await inngest.send({
-        name: "brandarmor/investigation.queued",
-        data: {
-          workspaceId: access.actor.workspaceId,
-          userId: access.actor.userId,
-          investigationId: result.state.investigation.id,
-        },
-      });
+    let worker: "inngest_queued" | "manual_resume_required" = "manual_resume_required";
+    if (inngestConfigured && result.state.investigation.status !== "completed" && result.state.investigation.status !== "completed_partial") {
+      try {
+        await inngest.send({
+          name: "brandarmor/investigation.queued",
+          data: {
+            workspaceId: access.actor.workspaceId,
+            userId: access.actor.userId,
+            investigationId: result.state.investigation.id,
+          },
+        });
+        worker = "inngest_queued";
+      } catch (enqueueError) {
+        console.error("BrandArmor Inngest enqueue failed; durable manual resume remains available", enqueueError);
+      }
     }
     return NextResponse.json({
       ...result,
-      worker: inngestConfigured ? "inngest_queued" : "manual_resume_required",
+      worker,
       runUrl: `/api/investigations/${result.state.investigation.id}/run`,
       statusUrl: `/api/investigations/${result.state.investigation.id}`,
     }, { status: result.created ? 202 : 200 });
@@ -67,6 +73,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof PilotRateLimitError) {
       return NextResponse.json({ error: error.message, code: "pilot_rate_limited" }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not queue investigation." }, { status: 500 });
+    console.error("BrandArmor investigation queue failed", error);
+    return NextResponse.json({ error: "Could not queue investigation.", code: "investigation_queue_failed" }, { status: 500 });
   }
 }

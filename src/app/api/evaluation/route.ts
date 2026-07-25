@@ -10,6 +10,20 @@ import { EVALUATION_FIXTURES } from "@/evaluation/fixtures";
 import { requirePilotAdminActor, requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 
+const legacyEvaluationCaseSchema = z.object({
+  title: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  price: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  sellerName: z.string().nullable().optional(),
+  marketplace: z.string().nullable().optional(),
+  listingUrl: z.string().nullable().optional(),
+  imageUrls: z.array(z.string()).optional(),
+  observedAt: z.string(),
+  groundTruth: z.enum(["counterfeit", "legitimate", "likely_counterfeit", "gray_market_import", "expired_or_unsafe", "insufficient_evidence", "unknown"]),
+  notes: z.string().nullable().optional(),
+});
+
 const reviewedCaseSchema = z.object({
   datasetVersion: z.string().min(1),
   externalCaseId: z.string().min(1),
@@ -40,7 +54,7 @@ export async function GET(request: NextRequest) {
     if (!access.allowed) return access.response;
 
     if (access.actor?.workspaceId) {
-      const cases = await listReviewedEvaluationCases(searchParams.get("datasetVersion") ?? undefined);
+      const cases = await listReviewedEvaluationCases(access.actor.workspaceId, searchParams.get("datasetVersion") ?? undefined);
       const classDistribution = Object.fromEntries(cases.reduce((counts, item) => {
         counts.set(item.reviewedLabel, (counts.get(item.reviewedLabel) ?? 0) + 1);
         return counts;
@@ -95,13 +109,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const entries = Array.isArray(body) ? body : [body];
-    const parsed = z.array(reviewedCaseSchema).safeParse(entries);
-    if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
     if (access.actor?.workspaceId) {
-      const created = await addReviewedEvaluationCases(parsed.data);
+      const parsed = z.array(reviewedCaseSchema).safeParse(entries);
+      if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
+      const created = await addReviewedEvaluationCases(access.actor.workspaceId, parsed.data);
       return NextResponse.json({ created: created.length }, { status: 201 });
     }
-    const created = createEvaluationCasesBulk(entries);
+    const legacy = z.array(legacyEvaluationCaseSchema).safeParse(entries);
+    if (!legacy.success) return NextResponse.json({ error: "Validation failed", details: legacy.error.flatten() }, { status: 400 });
+    const created = createEvaluationCasesBulk(legacy.data.map((item) => ({ ...item, imageUrls: item.imageUrls ?? [] })));
     return NextResponse.json({ created: created.length, cases: created }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
