@@ -76,7 +76,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       sizeBytes: file.size,
       sha256,
       provenance: "user_uploaded_screenshot",
-      retentionUntil: null,
+      retentionUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     });
     await getDatabase().insert(auditEvents).values({
       workspaceId: access.actor.workspaceId,
