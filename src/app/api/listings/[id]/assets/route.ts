@@ -73,6 +73,29 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const bytes = Buffer.from(await file.arrayBuffer());
     const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const db = getDatabase();
+    const [alreadyStored] = await db
+      .select()
+      .from(caseAssets)
+      .where(and(
+        eq(caseAssets.workspaceId, access.actor.workspaceId),
+        eq(caseAssets.listingId, listingId),
+        eq(caseAssets.sha256, sha256),
+      ))
+      .limit(1);
+    if (alreadyStored) {
+      return NextResponse.json({
+        asset: {
+          id: alreadyStored.id,
+          contentType: alreadyStored.contentType,
+          sizeBytes: alreadyStored.sizeBytes,
+          provenance: alreadyStored.provenance,
+          createdAt: alreadyStored.createdAt.toISOString(),
+        },
+        viewUrl: `/api/assets/${alreadyStored.id}`,
+      }, { status: 200 });
+    }
+
     const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
     const pathname = `brandarmor/${access.actor.workspaceId}/${listingId}/${randomUUID()}.${extension}`;
     const blob = await put(pathname, bytes, {
@@ -83,51 +106,49 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     let asset;
     try {
-      asset = await getDatabase().transaction(async (tx) => {
-        const [created] = await tx
-          .insert(caseAssets)
-          .values({
-            workspaceId: access.actor!.workspaceId!,
-            listingId,
-            objectKey: blob.pathname,
-            contentType: file.type,
-            sizeBytes: file.size,
-            sha256,
-            provenance: "user_uploaded_screenshot",
-            retentionUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            deletedAt: null,
-          })
-          .onConflictDoNothing({ target: [caseAssets.workspaceId, caseAssets.listingId, caseAssets.sha256] })
-          .returning();
-        const persisted = created ?? (await tx
-          .select()
-          .from(caseAssets)
-          .where(and(
-            eq(caseAssets.workspaceId, access.actor!.workspaceId!),
-            eq(caseAssets.listingId, listingId),
-            eq(caseAssets.sha256, sha256),
-          ))
-          .limit(1))[0];
-        if (!persisted) throw new Error("Private case asset persistence failed.");
-        if (created) {
-          await tx.insert(auditEvents).values({
-            workspaceId: access.actor!.workspaceId!,
-            actorUserId: access.actor!.userId!,
-            action: "case_asset.uploaded",
-            entityType: "case_asset",
-            entityId: persisted.id,
-            correlationId: listingId,
-            safeMetadata: { listingId, contentType: file.type, sizeBytes: file.size },
-          });
-        }
-        return { persisted, created: Boolean(created) };
-      });
+      const [created] = await db
+        .insert(caseAssets)
+        .values({
+          workspaceId: access.actor.workspaceId,
+          listingId,
+          objectKey: blob.pathname,
+          contentType: file.type,
+          sizeBytes: file.size,
+          sha256,
+          provenance: "user_uploaded_screenshot",
+          retentionUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          deletedAt: null,
+        })
+        .onConflictDoNothing({ target: [caseAssets.workspaceId, caseAssets.listingId, caseAssets.sha256] })
+        .returning();
+      const persisted = created ?? (await db
+        .select()
+        .from(caseAssets)
+        .where(and(
+          eq(caseAssets.workspaceId, access.actor.workspaceId),
+          eq(caseAssets.listingId, listingId),
+          eq(caseAssets.sha256, sha256),
+        ))
+        .limit(1))[0];
+      if (!persisted) throw new Error("Private case asset persistence failed.");
+      if (created) {
+        await db.insert(auditEvents).values({
+          workspaceId: access.actor.workspaceId,
+          actorUserId: access.actor.userId,
+          action: "case_asset.uploaded",
+          entityType: "case_asset",
+          entityId: persisted.id,
+          correlationId: listingId,
+          safeMetadata: { listingId, contentType: file.type, sizeBytes: file.size },
+        });
+      }
+      asset = { persisted, created: Boolean(created) };
     } catch (persistenceError) {
-      try { await del(blob.pathname); } catch { /* retention worker can retry any orphan cleanup separately */ }
+      try { await del(blob.pathname); } catch { /* retention cleanup can retry an orphaned object if deletion fails */ }
       throw persistenceError;
     }
     if (!asset.created) {
-      try { await del(blob.pathname); } catch { /* duplicate upload leaves the existing persisted asset intact */ }
+      try { await del(blob.pathname); } catch { /* duplicate upload leaves existing stored asset intact */ }
     }
 
     return NextResponse.json({
