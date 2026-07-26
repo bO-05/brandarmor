@@ -23,6 +23,7 @@ export function verifiedMarketplaceForUrl(value: string): string | null {
   try {
     const url = new URL(value);
     if (url.protocol !== "https:" || url.pathname === "/") return null;
+    if (/\/(?:find|search|category)(?:\/|$)/i.test(url.pathname)) return null;
     const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
     for (const marketplace of MARKETPLACES) {
       if (marketplace.hosts.some((host) => hostname === host || hostname.endsWith(`.${host}`))) return marketplace.name;
