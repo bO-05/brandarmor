@@ -851,7 +851,7 @@ export async function getPilotInvestigationState(workspaceId: string, investigat
   const [report] = await db
     .select()
     .from(reportVersions)
-    .where(and(eq(reportVersions.workspaceId, workspaceId), eq(reportVersions.investigationId, investigationId)))
+    .where(and(eq(reportVersions.workspaceId, workspaceId), eq(reportVersions.investigationId, investigationId), eq(reportVersions.lifecycleStatus, "active")))
     .orderBy(desc(reportVersions.createdAt))
     .limit(1);
 

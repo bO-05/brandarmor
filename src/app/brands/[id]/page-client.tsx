@@ -17,6 +17,7 @@ export default function BrandDetailPage({
   const [brand, setBrand] = useState<Brand | null>(initialBrand);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
 
   useEffect(() => {
@@ -29,12 +30,16 @@ export default function BrandDetailPage({
       })
       .catch((error) => {
         if (active) setLoadError(error instanceof Error ? error.message : "Could not load this brand baseline.");
+      })
+      .finally(() => {
+        if (active) setLoaded(true);
       });
     return () => { active = false; };
   }, [brandId]);
 
   if (loadError) return <div role="alert" className="p-6 text-destructive">{loadError}</div>;
-  if (!brand) return <div className="p-6">Loading&hellip;</div>;
+  if (!loaded) return <div className="p-6">Loading&hellip;</div>;
+  if (!brand) return <div className="p-6">This brand was not found in your current workspace.</div>;
 
   return (
     <div className="max-w-4xl mx-auto">

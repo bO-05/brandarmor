@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     if (e instanceof PilotRateLimitError) {
       return NextResponse.json({ error: e.message, code: "pilot_rate_limited" }, { status: 429, headers: { "Retry-After": String(e.retryAfterSeconds) } });
     }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    console.error("BrandArmor brand creation failed", e);
+    return NextResponse.json({ error: "Could not create the brand. Retry.", code: "brand_create_failed" }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import type { InsertBrand } from "@/domain/schemas";
 import type { Brand } from "@/domain/types";
@@ -20,18 +20,34 @@ function mapBrand(row: typeof brands.$inferSelect): Brand {
 
 export async function createPilotBrand(workspaceId: string, input: InsertBrand): Promise<Brand> {
   const db = getDatabase();
+  const name = input.name.trim();
+  const [existing] = await db
+    .select()
+    .from(brands)
+    .where(and(eq(brands.workspaceId, workspaceId), eq(brands.name, name)))
+    .limit(1);
+  if (existing) return mapBrand(existing);
+
   const [created] = await db
     .insert(brands)
     .values({
       workspaceId,
-      name: input.name.trim(),
+      name,
       description: input.description ?? null,
       websiteUrl: input.websiteUrl ?? null,
       logoUrl: input.logoUrl ?? null,
     })
+    .onConflictDoNothing({ target: [brands.workspaceId, brands.name] })
     .returning();
+  if (created) return mapBrand(created);
 
-  return mapBrand(created);
+  const [resolved] = await db
+    .select()
+    .from(brands)
+    .where(and(eq(brands.workspaceId, workspaceId), eq(brands.name, name)))
+    .limit(1);
+  if (!resolved) throw new Error("Brand persistence did not resolve a durable brand.");
+  return mapBrand(resolved);
 }
 
 export async function listPilotBrands(workspaceId: string): Promise<Brand[]> {

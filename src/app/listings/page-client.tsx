@@ -16,6 +16,7 @@ export default function ListingsPage({
 }) {
   const [loadedListings, setLoadedListings] = useState(initialListings);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [listingsLoaded, setListingsLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -30,6 +31,9 @@ export default function ListingsPage({
       })
       .catch((error) => {
         if (active) setLoadError(error instanceof Error ? error.message : "Could not load listings.");
+      })
+      .finally(() => {
+        if (active) setListingsLoaded(true);
       });
     return () => { active = false; };
   }, []);
@@ -55,7 +59,7 @@ export default function ListingsPage({
 
       {loadError ? <p role="alert" className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{loadError}</p> : null}
 
-      {listings.length === 0 ? (
+      {!listingsLoaded ? <div className="surface-card rounded-lg p-12 text-center"><p className="text-sm text-muted-foreground">Loading workspace listings…</p></div> : listings.length === 0 ? (
         <div className="surface-card rounded-lg p-12 text-center">
           <h2 className="text-lg font-semibold">No candidate listings yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
