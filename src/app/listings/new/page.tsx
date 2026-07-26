@@ -85,18 +85,24 @@ export default function NewListingPage() {
           observedAt: new Date().toISOString(),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed");
-      const listingId = data.listing?.id ?? data.id;
+      const data = await res.json().catch(() => null) as { error?: string; listing?: { id?: string }; id?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? `Could not create listing (status ${res.status}).`);
+      const listingId = data?.listing?.id ?? data?.id;
       if (!listingId) throw new Error("Listing was created without an identifier.");
+      let uploadWarning: string | null = null;
       if (screenshotFile) {
-        const upload = new FormData();
-        upload.set("file", screenshotFile);
-        const uploadResponse = await fetch(`/api/listings/${listingId}/assets`, { method: "POST", body: upload });
-        const uploadJson = await uploadResponse.json();
-        if (!uploadResponse.ok) throw new Error(uploadJson.error ?? "Listing was created, but the private screenshot upload failed.");
+        try {
+          const upload = new FormData();
+          upload.set("file", screenshotFile);
+          const uploadResponse = await fetch(`/api/listings/${listingId}/assets`, { method: "POST", body: upload });
+          const uploadJson = await uploadResponse.json().catch(() => null) as { error?: string } | null;
+          if (!uploadResponse.ok) uploadWarning = uploadJson?.error ?? "Private screenshot upload could not complete.";
+        } catch {
+          uploadWarning = "Private screenshot upload could not complete. The listing was saved and you can retry from its case workspace.";
+        }
       }
-      toast.success(screenshotFile ? "Listing and private screenshot saved. Investigation is queued." : "Listing created. Investigation is queued.");
+      if (uploadWarning) toast.warning(uploadWarning);
+      else toast.success(screenshotFile ? "Listing and private screenshot saved. Investigation is queued." : "Listing created. Investigation is queued.");
       router.push(`/listings/${listingId}`);
       router.refresh();
     } catch (e) { toast.error((e as Error).message); } finally { setLoading(false); }

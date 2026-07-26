@@ -17,12 +17,6 @@ const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"])
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-function configuredPrivateBlobStore(): boolean {
-  // On Vercel, OIDC must be paired with the connected store ID. A generic
-  // VERCEL_OIDC_TOKEN alone is not sufficient to address a private Blob store.
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN));
-}
-
 export async function GET(request: NextRequest, context: RouteContext) {
   const access = await requirePilotWriteActor(request);
   if (!access.allowed) return access.response;
@@ -55,13 +49,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (!access.actor?.workspaceId || !access.actor.userId) {
     return NextResponse.json({ error: "Pilot workspace context is required.", code: "pilot_workspace_required" }, { status: 403 });
   }
-  if (!configuredPrivateBlobStore()) {
-    return NextResponse.json({
-      error: "Private case-asset storage is not configured. Connect a private Vercel Blob store before uploading screenshots.",
-      code: "private_asset_storage_not_configured",
-    }, { status: 503 });
-  }
-
   try {
     await enforcePilotRateLimit({
       workspaceId: access.actor.workspaceId,

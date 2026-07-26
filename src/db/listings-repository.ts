@@ -49,30 +49,47 @@ function mapListing(row: typeof listings.$inferSelect): Listing {
 
 export async function createPilotListing(workspaceId: string, input: InsertListing): Promise<Listing> {
   const db = getDatabase();
-  const [created] = await db
-    .insert(listings)
-    .values({
-      workspaceId,
-      productBaselineId: input.productId ?? null,
-      title: input.title.trim(),
-      description: input.description ?? null,
-      price: input.price == null ? null : Math.round(input.price),
-      currency: input.currency ?? "IDR",
-      sellerName: input.sellerName ?? null,
-      marketplace: input.marketplace ?? null,
-      listingUrl: input.listingUrl ?? null,
-      normalizedListingUrl: normalizeListingUrl(input.listingUrl),
-      imageUrls: input.imageUrls ?? [],
-      sourceConfidence: Math.round((input.sourceConfidence ?? 0.6) * 10_000),
-      rightsStatus: input.rightsStatus ?? "unknown",
-      limitations: input.limitations ?? [],
-      observedAt: new Date(input.observedAt),
-      rawSource: stripEvaluationLabels(input.rawSource ?? null),
-      sourceType: input.sourceType,
-    })
-    .returning();
+  const normalizedListingUrl = normalizeListingUrl(input.listingUrl);
+  if (normalizedListingUrl) {
+    const [existing] = await db
+      .select()
+      .from(listings)
+      .where(and(eq(listings.workspaceId, workspaceId), eq(listings.normalizedListingUrl, normalizedListingUrl)))
+      .limit(1);
+    if (existing) return mapListing(existing);
+  }
 
-  return mapListing(created);
+  const values = {
+    workspaceId,
+    productBaselineId: input.productId ?? null,
+    title: input.title.trim(),
+    description: input.description ?? null,
+    price: input.price == null ? null : Math.round(input.price),
+    currency: input.currency ?? "IDR",
+    sellerName: input.sellerName ?? null,
+    marketplace: input.marketplace ?? null,
+    listingUrl: input.listingUrl ?? null,
+    normalizedListingUrl,
+    imageUrls: input.imageUrls ?? [],
+    sourceConfidence: Math.round((input.sourceConfidence ?? 0.6) * 10_000),
+    rightsStatus: input.rightsStatus ?? "unknown",
+    limitations: input.limitations ?? [],
+    observedAt: new Date(input.observedAt),
+    rawSource: stripEvaluationLabels(input.rawSource ?? null),
+    sourceType: input.sourceType,
+  };
+  const [created] = normalizedListingUrl
+    ? await db.insert(listings).values(values).onConflictDoNothing({ target: [listings.workspaceId, listings.normalizedListingUrl] }).returning()
+    : await db.insert(listings).values(values).returning();
+  if (created) return mapListing(created);
+
+  const [existing] = await db
+    .select()
+    .from(listings)
+    .where(and(eq(listings.workspaceId, workspaceId), eq(listings.normalizedListingUrl, normalizedListingUrl!)))
+    .limit(1);
+  if (!existing) throw new Error("Listing persistence did not resolve a durable listing.");
+  return mapListing(existing);
 }
 
 export async function getPilotListing(workspaceId: string, listingId: string): Promise<Listing | null> {
