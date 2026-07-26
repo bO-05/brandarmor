@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { OrganizationSwitcher, SignInButton, UserButton, useAuth } from "@clerk/nextjs";
 
 export function PilotAuthControls() {
@@ -16,7 +17,10 @@ function PilotAuthLoadedControls() {
       {isSignedIn ? (
         <div className="flex items-center justify-between gap-2">
           <OrganizationSwitcher />
-          <UserButton />
+          <div className="flex items-center gap-2">
+            <Link href="/workspace" className="text-xs font-semibold text-primary">Members</Link>
+            <UserButton />
+          </div>
         </div>
       ) : (
         <SignInButton mode="modal">
