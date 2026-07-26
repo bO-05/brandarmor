@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, CircleDashed, FileText, PlayCircle, RefreshCw, ShieldCheck } from "lucide-react";
 
@@ -68,11 +68,13 @@ function stageTone(status: string): string {
 export default function PilotListingDetail({ listingId }: { listingId: string }) {
   const [listing, setListing] = useState<Listing | null>(null);
   const [investigation, setInvestigation] = useState<InvestigationState | null>(null);
+  const authRetry = useRef(false);
   const [assets, setAssets] = useState<InvestigationState["assets"]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [reviewStatus, setReviewStatus] = useState("pending");
   const [reviewNotes, setReviewNotes] = useState("");
+  const [confirmReportDeletion, setConfirmReportDeletion] = useState(false);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -99,7 +101,13 @@ export default function PilotListingDetail({ listingId }: { listingId: string })
       }
       setMessage(null);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not load the durable case workspace.");
+      const detail = error instanceof Error ? error.message : "Could not load the durable case workspace.";
+      if (!authRetry.current && /authentication is required|pilot_auth_required/i.test(detail)) {
+        authRetry.current = true;
+        window.setTimeout(() => { void load(); }, 500);
+        return;
+      }
+      setMessage(detail);
     } finally {
       setLoading(false);
     }
@@ -167,7 +175,7 @@ export default function PilotListingDetail({ listingId }: { listingId: string })
   }
 
   async function deleteReport() {
-    if (!investigation || !window.confirm("Delete the active durable report versions for this case? This preserves an audit event but makes the reports unavailable.")) return;
+    if (!investigation) return;
     setRunning(true);
     try {
       const response = await fetch(`/api/investigations/${investigation.investigation.id}/report`, { method: "DELETE" });
@@ -176,6 +184,7 @@ export default function PilotListingDetail({ listingId }: { listingId: string })
         throw new Error(body.error ?? "Could not delete report.");
       }
       await load();
+      setConfirmReportDeletion(false);
       setMessage("Active durable report versions were deleted. The audit event is retained.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not delete report.");
@@ -272,7 +281,24 @@ export default function PilotListingDetail({ listingId }: { listingId: string })
 
       {investigation ? <section className="mt-5 grid gap-3 md:grid-cols-2">
         <div className="rounded-lg border border-border bg-card p-5"><div className="flex items-center gap-2"><CheckCircle2 className="size-4 text-primary" /><h2 className="font-semibold">Human review</h2></div><p className="mt-2 text-sm text-muted-foreground">{investigation.review ? `${investigation.review.status.replaceAll("_", " ")} · revision ${investigation.review.revision}` : "Run the workflow before saving a review decision."}</p>{investigation.review ? <div className="mt-3 space-y-2"><select value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"><option value="pending">Pending</option><option value="needs_more_evidence">Needs more evidence</option><option value="likely_counterfeit">Likely counterfeit</option><option value="confirmed_counterfeit">Confirmed counterfeit</option><option value="rejected_legitimate">Rejected legitimate</option><option value="gray_market_import">Gray market import</option><option value="expired_or_unsafe">Expired or unsafe</option><option value="escalated">Escalated</option></select><textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Internal review notes (optional)" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" rows={2} /><button type="button" onClick={() => void saveReview()} disabled={running} className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">Save human review</button></div> : null}</div>
-        <div className="rounded-lg border border-border bg-card p-5"><div className="flex items-center gap-2"><FileText className="size-4 text-primary" /><h2 className="font-semibold">Versioned report</h2></div><p className="mt-2 text-sm text-muted-foreground">{investigation.report ? `Version ${investigation.report.version} · ${investigation.report.lifecycleStatus}` : "Report is created after the durable workflow runs."}</p>{investigation.report ? <div className="mt-3 flex flex-wrap gap-3"><a href={`/api/listings/${listing.id}/report?format=json`} className="text-sm font-semibold text-primary">Download durable JSON report</a><button type="button" onClick={() => void deleteReport()} disabled={running} className="text-sm font-semibold text-destructive disabled:opacity-60">Delete active report</button></div> : null}</div>
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center gap-2"><FileText className="size-4 text-primary" /><h2 className="font-semibold">Versioned report</h2></div>
+          <p className="mt-2 text-sm text-muted-foreground">{investigation.report ? `Version ${investigation.report.version} · ${investigation.report.lifecycleStatus}` : "Report is created after the durable workflow runs."}</p>
+          {investigation.report ? (
+            <div className="mt-3 flex flex-wrap gap-3">
+              <a href={`/api/listings/${listing.id}/report?format=json`} className="text-sm font-semibold text-primary">Download durable JSON report</a>
+              {!confirmReportDeletion ? (
+                <button type="button" onClick={() => setConfirmReportDeletion(true)} disabled={running} className="text-sm font-semibold text-destructive disabled:opacity-60">Delete active report</button>
+              ) : (
+                <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1 text-sm">
+                  <span>This removes the active report.</span>
+                  <button type="button" onClick={() => void deleteReport()} disabled={running} className="font-semibold text-destructive disabled:opacity-60">Confirm delete</button>
+                  <button type="button" onClick={() => setConfirmReportDeletion(false)} disabled={running} className="text-muted-foreground">Cancel</button>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
       </section> : null}
     </div>
   );
