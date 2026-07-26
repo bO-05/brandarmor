@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Plus, Loader2 } from "lucide-react";
-import { GLOGLOWING_DISCOVERY_QUERY } from "@/lib/discovery-defaults";
 
 interface Candidate {
   title: string;
@@ -18,7 +17,7 @@ interface Candidate {
 
 export default function DiscoveryPage() {
   const router = useRouter();
-  const [query, setQuery] = useState(GLOGLOWING_DISCOVERY_QUERY);
+  const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [products, setProducts] = useState<Array<{ id: string; name: string }>>([]);
   const [pendingCandidate, setPendingCandidate] = useState<Candidate | null>(null);
@@ -97,8 +96,8 @@ export default function DiscoveryPage() {
       <div className="surface-card rounded-lg p-5 mb-5">
         <label htmlFor="discovery-query" className="block text-sm font-medium mb-2">Search query</label>
         <div className="flex gap-2">
-          <input id="discovery-query" value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" />
-          <button type="button" onClick={discover} disabled={loading} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60">
+          <input id="discovery-query" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. MS Glow serum Tokopedia" className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <button type="button" onClick={discover} disabled={loading || !query.trim()} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60">
             {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} Discover
           </button>
         </div>

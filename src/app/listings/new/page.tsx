@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { toast } from "sonner";
 
 export default function NewListingPage() {
-  const router = useRouter();
   const [form, setForm] = useState({ title: "", description: "", price: "", marketplace: "", sellerName: "", listingUrl: "", productId: "", screenshotUrl: "" });
   const [products, setProducts] = useState<Array<{ id: string; name: string; category?: string; bpomNie?: string | null }>>([]);
   const [loading, setLoading] = useState(false);
@@ -103,8 +102,7 @@ export default function NewListingPage() {
       }
       if (uploadWarning) toast.warning(uploadWarning);
       else toast.success(screenshotFile ? "Listing and private screenshot saved. Investigation is queued." : "Listing created. Investigation is queued.");
-      router.push(`/listings/${listingId}`);
-      router.refresh();
+      window.location.assign(`/listings/${listingId}`);
     } catch (e) { toast.error((e as Error).message); } finally { setLoading(false); }
   }
 

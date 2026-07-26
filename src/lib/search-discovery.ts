@@ -33,6 +33,17 @@ export function verifiedMarketplaceForUrl(value: string): string | null {
   return null;
 }
 
+function queryRelevanceMatches(candidate: DiscoveryCandidate, query: string): boolean {
+  const ignored = new Set(["shopee", "tokopedia", "lazada", "blibli", "bukalapak", "marketplace", "listing", "product", "official", "counterfeit", "palsu", "fraud", "kw"]);
+  const tokens = query.toLowerCase().match(/[a-z0-9]{2,}/g)?.filter((token) => !ignored.has(token)) ?? [];
+  if (!tokens.length) return true;
+  const haystack = `${candidate.title} ${candidate.snippet}`.toLowerCase();
+  const matches = tokens.filter((token) => haystack.includes(token));
+  // Require the distinctive first term plus at least one additional product term
+  // where possible, so a generic "serum" result cannot replace an MS Glow query.
+  return haystack.includes(tokens[0]) && matches.length >= Math.min(2, tokens.length);
+}
+
 export async function discoverCandidates(query: string): Promise<DiscoveryCandidate[]> {
   const apiKey = envValue("PERPLEXITY_API_KEY");
   if (!apiKey) return [];
@@ -64,19 +75,21 @@ export async function discoverCandidates(query: string): Promise<DiscoveryCandid
     if (!Array.isArray(parsed)) return [];
 
     return parsed.slice(0, 10).flatMap((item: unknown) => {
+      if (!item || typeof item !== "object") return [];
       const record = item as Record<string, unknown>;
       const url = typeof record.url === "string" ? record.url : "";
       const marketplace = verifiedMarketplaceForUrl(url);
       if (!marketplace) return [];
-      return [{
+      const candidate: DiscoveryCandidate = {
         title: typeof record.title === "string" ? record.title : query,
         url,
         snippet: typeof record.snippet === "string" ? record.snippet : "",
         marketplace,
-        source: "perplexity" as const,
+        source: "perplexity",
         sourceConfidence: 0.55,
-        verifiedMarketplaceDomain: true as const,
-      }];
+        verifiedMarketplaceDomain: true,
+      };
+      return queryRelevanceMatches(candidate, query) ? [candidate] : [];
     });
   } catch {
     return [];
