@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PlayCircle, Plus, Search, Upload } from "lucide-react";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
@@ -13,8 +14,32 @@ export default function ListingsPage({
   initialListings: Listing[];
   initialScores: Score[];
 }) {
+  const [loadedListings, setLoadedListings] = useState(initialListings);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [listingsLoaded, setListingsLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/listings", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error ?? "Could not load listings.");
+        return body as Listing[];
+      })
+      .then((nextListings) => {
+        if (active) setLoadedListings(nextListings);
+      })
+      .catch((error) => {
+        if (active) setLoadError(error instanceof Error ? error.message : "Could not load listings.");
+      })
+      .finally(() => {
+        if (active) setListingsLoaded(true);
+      });
+    return () => { active = false; };
+  }, []);
+
   const scoresMap = new Map(initialScores.map((s) => [s.listingId, s]));
-  const listings = initialListings.map((l) => ({
+  const listings = loadedListings.map((l) => ({
     ...l,
     score: scoresMap.get(l.id)?.totalScore,
     riskLevel: scoresMap.get(l.id)?.riskLevel,
@@ -32,7 +57,9 @@ export default function ListingsPage({
         </div>
       </div>
 
-      {listings.length === 0 ? (
+      {loadError ? <p role="alert" className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{loadError}</p> : null}
+
+      {!listingsLoaded ? <div className="surface-card rounded-lg p-12 text-center"><p className="text-sm text-muted-foreground">Loading workspace listings…</p></div> : listings.length === 0 ? (
         <div className="surface-card rounded-lg p-12 text-center">
           <h2 className="text-lg font-semibold">No candidate listings yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">

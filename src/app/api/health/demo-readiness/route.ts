@@ -1,10 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvValue } from "@/lib/env";
 import { getBrands, getListings, getProducts, isDataDirWritable } from "@/persistence/store";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
+import { isControlledDemoMode } from "@/lib/runtime-mode";
+import { isPilotRuntime } from "@/lib/auth/config";
+import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    if (isPilotRuntime()) {
+      const access = await requirePilotWriteActor(request);
+      if (!access.allowed) return access.response;
+      return NextResponse.json({
+        mistralConfigured: hasEnvValue("MISTRAL_API_KEY"),
+        anthropicConfigured: hasEnvValue("ANTHROPIC_API_KEY"),
+        dataWritable: true,
+        brandCount: 0,
+        productCount: 0,
+        listingCount: 0,
+        runtimeMode: "pilot",
+        mutationsEnabled: true,
+        demoReady: false,
+      });
+    }
+
     ensureDemoSeeded();
     const brandCount = getBrands().length;
     const productCount = getProducts().length;
@@ -17,6 +36,8 @@ export async function GET() {
       brandCount,
       productCount,
       listingCount,
+      runtimeMode: isControlledDemoMode() ? "controlled_demo" : "interactive",
+      mutationsEnabled: !isControlledDemoMode(),
       demoReady: dataWritable && brandCount > 0 && productCount > 0 && listingCount > 0,
     });
   } catch (e) {

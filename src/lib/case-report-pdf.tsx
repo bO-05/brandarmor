@@ -118,7 +118,7 @@ function CaseReportPdf({ report }: { report: CaseReport }) {
           {report.judge?.doNotClaimReasons.length ? <Text style={[styles.small, { marginTop: 4 }]}>Claim limits: {report.judge.doNotClaimReasons.join(" ")}</Text> : null}
         </View>
 
-        <Text style={styles.footer}>BrandArmor evidence report • Public listing and internally generated evidence only • Not for automatic enforcement or legal determination</Text>
+        <Text style={styles.footer}>BrandArmor evidence report • Case data may be user-provided or collected • Not for automatic enforcement or legal determination</Text>
       </Page>
     </Document>
   );

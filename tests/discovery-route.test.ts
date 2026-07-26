@@ -32,7 +32,7 @@ describe("POST /api/discovery", () => {
     }
   });
 
-  it("keeps successful fallback discovery behavior unchanged", async () => {
+  it("does not fabricate marketplace candidates when a verified discovery provider is unavailable", async () => {
     delete process.env.PERPLEXITY_API_KEY;
 
     const response = await POST(new Request("http://localhost/api/discovery", {
@@ -43,7 +43,7 @@ describe("POST /api/discovery", () => {
     const json = await response.json();
 
     expect(response.status).toBe(200);
-    expect(json.candidates.length).toBeGreaterThan(0);
-    expect(json.candidates.every((candidate: { source: string }) => candidate.source === "mock")).toBe(true);
+    expect(json.candidates).toEqual([]);
+    expect(json.notice).toMatch(/not configured/i);
   });
 });

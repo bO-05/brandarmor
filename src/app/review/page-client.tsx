@@ -2,11 +2,9 @@
 
 import { useEffect, useReducer } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
 import { AlertTriangle, CheckCircle, HelpCircle, PlayCircle, Plus, Upload, XCircle } from "lucide-react";
 import { useAmbientStatus } from "@/components/AmbientStatusProvider";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
-import { ReviewDecisionPanel } from "@/components/ReviewDecisionPanel";
 import { ReviewNextSteps } from "@/components/ReviewNextSteps";
 import { fetchJsonArray } from "@/lib/api-client";
 import type { RecommendedAction, ReviewStatus, Score } from "@/domain/types";
@@ -88,24 +86,14 @@ export default function ReviewPage() {
   async function load() {
     dispatch({ type: "load_started" });
     try {
-      const [decisionsResult, listingsResult, scoresResult] = await Promise.all([
-        fetchJsonArray<ReviewItem>("/api/review", { init: { cache: "no-store" } }),
-        fetchJsonArray<ListingSummary>("/api/listings", { init: { cache: "no-store" } }),
-        fetchJsonArray<ScoreSummary>("/api/scoring", { init: { cache: "no-store" } }),
-      ]);
-      const listingsById = new Map(listingsResult.data.map((listing) => [listing.id, listing]));
-      const scoresByListingId = new Map(scoresResult.data.map((score) => [score.listingId, score]));
-      const enriched = decisionsResult.data.map((decision) => ({
-        ...decision,
-        listing: listingsById.get(decision.listingId),
-        score: scoresByListingId.get(decision.listingId) ?? null,
-      }));
+      const decisionsResult = await fetchJsonArray<ReviewItem>("/api/review", { init: { cache: "no-store" } });
+      const items = decisionsResult.data;
       dispatch({
         type: "load_finished",
-        items: enriched,
-        listingCount: listingsResult.data.length,
-        scoreCount: scoresResult.data.length,
-        error: [decisionsResult.error, listingsResult.error, scoresResult.error].filter(Boolean).join(" ") || null,
+        items,
+        listingCount: new Set(items.map((item) => item.listingId)).size,
+        scoreCount: items.filter((item) => item.score).length,
+        error: decisionsResult.error,
       });
     } catch (e) {
       dispatch({
@@ -221,18 +209,9 @@ export default function ReviewPage() {
                       ))}
                     </div>
                   )}
-                  <ReviewDecisionPanel
-                    className="mt-3"
-                    listingId={item.listingId}
-                    decision={item}
-                    score={item.score ?? null}
-                    title={item.listing?.title}
-                    onSaved={async (status) => {
-                      toast.success(`Review label saved: ${getReviewStatusPresentation(status).label}`);
-                      dispatch({ type: "mark_updated", listingId: item.listingId, status, title: item.listing?.title });
-                      await load();
-                    }}
-                  />
+                  <Link href={`/listings/${item.listingId}`} className="mt-3 inline-flex rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
+                    Open durable case review
+                  </Link>
                 </div>
               </div>
             </div>

@@ -1,8 +1,5 @@
 import DashboardPage from "./page-client";
 import { hasEnvValue } from "@/lib/env";
-import { ensureDemoSeeded } from "@/persistence/auto-seed";
-import { getBrands, getListings, getProducts, getReviewDecisions, getScores, isDataDirWritable } from "@/persistence/store";
-import { getEvaluationFixtureCount } from "@/evaluation/dataset";
 
 export const dynamic = "force-dynamic";
 
@@ -12,34 +9,24 @@ export const metadata = {
 };
 
 export default function Page() {
-  // Self-heal an empty serverless workspace so the landing page is never blank.
-  ensureDemoSeeded();
-
-  const listings = getListings();
-  const scores = getScores();
-  const reviews = getReviewDecisions();
-  const scoredListingIds = new Set(scores.map((score) => score.listingId));
-  const brandCount = getBrands().length;
-  const productCount = getProducts().length;
-  const listingCount = listings.length;
-  const dataWritable = isDataDirWritable();
-
+  // Pilot dashboard data is loaded through authenticated workspace APIs in the
+  // client. Do not seed or read per-instance JSON during server rendering.
   return (
     <DashboardPage
       initialData={{
-        brands: brandCount,
-        listings: listingCount,
-        unlinkedListings: listings.filter((listing) => !listing.productId).length,
-        unscoredListings: listings.filter((listing) => !scoredListingIds.has(listing.id)).length,
-        pendingReviews: reviews.filter((review) => review.status === "pending").length,
-        highRisk: scores.filter((score) => score.riskLevel === "high" || score.riskLevel === "critical").length,
-        reviewDecisions: reviews.length,
-        evaluationCases: getEvaluationFixtureCount(),
+        brands: 0,
+        listings: 0,
+        unlinkedListings: 0,
+        unscoredListings: 0,
+        pendingReviews: 0,
+        highRisk: 0,
+        reviewDecisions: 0,
+        evaluationCases: 0,
         readiness: {
           mistralConfigured: hasEnvValue("MISTRAL_API_KEY"),
           anthropicConfigured: hasEnvValue("ANTHROPIC_API_KEY"),
-          dataWritable,
-          demoReady: dataWritable && brandCount > 0 && productCount > 0 && listingCount > 0,
+          dataWritable: false,
+          demoReady: false,
         },
       }}
     />

@@ -158,7 +158,7 @@ export function buildInvestigationTrail(bundle: InvestigationArtifactBundle): In
       listing.id,
       "score_computed",
       "system",
-      `Deterministic routing score ${score.totalScore} recommends ${score.recommendedAction === "enforce" ? "internal escalation for approval" : score.recommendedAction}.`,
+      `Deterministic routing score ${score.totalScore} recommends ${score.recommendedAction === "priority_review" ? "priority human review" : score.recommendedAction}.`,
       Array.from(new Set(score.reasons.flatMap((reason) => reason.evidenceRefs))).sort(),
       score.createdAt,
       { totalScore: score.totalScore, recommendedAction: score.recommendedAction, confidenceBand: score.confidenceBand },

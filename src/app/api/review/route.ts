@@ -1,11 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getReviewDecisions, getReviewDecision, createReviewDecision, updateReviewDecision } from "@/persistence/store";
+import { listPilotReviewQueue } from "@/db/review-queue-repository";
+import { requirePilotWriteActor } from "@/lib/auth/route-guard";
 import { insertReviewDecisionSchema } from "@/domain/schemas";
 import { isValidTransition, getAllowedTransitions } from "@/domain/review";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const access = await requirePilotWriteActor(request);
+    if (!access.allowed) return access.response;
+    if (access.actor?.workspaceId) {
+      return NextResponse.json(await listPilotReviewQueue(access.actor.workspaceId), { headers: { "Cache-Control": "no-store" } });
+    }
+
     ensureDemoSeeded();
     const { searchParams } = new URL(request.url);
     const listingId = searchParams.get("listingId");

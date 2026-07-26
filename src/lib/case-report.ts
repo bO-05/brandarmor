@@ -52,8 +52,8 @@ export const caseReportSchema = z.object({
   disclaimer: z.literal("Evidence prioritization for human review — not a legal determination of counterfeiting or authenticity."),
   claimBoundary: z.literal("BrandArmor routes suspicious marketplace listings for evidence-backed human review. It does not automatically confirm counterfeiting, authenticity, legal violations, or enforcement outcomes."),
   privacy: z.object({
-    includedData: z.literal("Public listing and internally generated evidence data only"),
-    excludedData: z.literal("No credentials, raw provider secrets, reviewer identity, internal notes, or non-public personal data"),
+    includedData: z.literal("User-provided and collected case data, plus internally generated evidence and report summaries"),
+    excludedData: z.literal("No credentials, raw provider secrets, or reviewer identity; listing text, seller data, URLs, screenshots, and evidence notes may be personal or non-public"),
   }),
   listing: reportListingSchema,
   baseline: reportBaselineSchema.nullable(),
@@ -102,6 +102,9 @@ export const caseReportSchema = z.object({
   }).nullable(),
   score: z.object({
     totalScore: z.number(),
+    riskScore: z.number(),
+    evidenceCompleteness: z.number().min(0).max(1),
+    confidence: z.enum(["low", "medium", "high"]),
     riskLevel: z.string(),
     confidenceBand: z.string(),
     recommendedAction: z.string(),
@@ -179,6 +182,13 @@ function modeFor(
   return "mock";
 }
 
+function reportConfidenceFor(score: NonNullable<InvestigationArtifactBundle["score"]>): "low" | "medium" | "high" {
+  if (score.confidence) return score.confidence;
+  if (score.confidenceBand === "low_evidence") return "low";
+  if (score.confidenceBand === "strong") return "high";
+  return "medium";
+}
+
 export function buildCaseReport(bundle: InvestigationArtifactBundle, generatedAt = new Date().toISOString()): CaseReport {
   const { listing, product, evidence, ocr, regulatory, visual, score, judge, review } = bundle;
   const investigation = buildInvestigationTrail(bundle);
@@ -189,8 +199,8 @@ export function buildCaseReport(bundle: InvestigationArtifactBundle, generatedAt
     disclaimer: DISCLAIMER,
     claimBoundary: CLAIM_BOUNDARY,
     privacy: {
-      includedData: "Public listing and internally generated evidence data only" as const,
-      excludedData: "No credentials, raw provider secrets, reviewer identity, internal notes, or non-public personal data" as const,
+      includedData: "User-provided and collected case data, plus internally generated evidence and report summaries" as const,
+      excludedData: "No credentials, raw provider secrets, or reviewer identity; listing text, seller data, URLs, screenshots, and evidence notes may be personal or non-public" as const,
     },
     listing: {
       id: listing.id,
@@ -268,6 +278,9 @@ export function buildCaseReport(bundle: InvestigationArtifactBundle, generatedAt
     } : null,
     score: score ? {
       totalScore: score.totalScore,
+      riskScore: score.riskScore ?? score.totalScore,
+      evidenceCompleteness: score.evidenceCompleteness ?? score.features.evidenceCompleteness,
+      confidence: reportConfidenceFor(score),
       riskLevel: score.riskLevel,
       confidenceBand: score.confidenceBand,
       recommendedAction: score.recommendedAction,

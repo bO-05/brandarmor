@@ -1,2 +1,3 @@
-export const GLOGLOWING_DISCOVERY_QUERY =
-  "Gloglowing Baby Glow Lip Serum KW palsu counterfeit fraud Shopee Tokopedia Lazada BPOM";
+// Discovery must start from the user's own query rather than a pre-biased
+// synthetic counterfeit example.
+export const GLOGLOWING_DISCOVERY_QUERY = "";

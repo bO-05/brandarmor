@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "review_decisions_investigation_unique" ON "review_decisions" USING btree ("investigation_id");

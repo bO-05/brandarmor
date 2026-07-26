@@ -76,7 +76,6 @@ export interface Listing {
   sourceConfidence: number;
   rightsStatus: string;
   limitations: string[];
-  groundTruth: GroundTruthLabel | null;
   observedAt: string;
   rawSource: unknown | null;
   sourceType: string;
@@ -145,12 +144,15 @@ export interface ScoringReason {
 }
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
-export type RecommendedAction = 'ignore' | 'watch' | 'review' | 'enforce';
+export type RecommendedAction = 'ignore' | 'watch' | 'review' | 'priority_review';
 
 export interface Score {
   id: ScoreId;
   listingId: ListingId;
   totalScore: number;
+  riskScore?: number;
+  evidenceCompleteness?: number;
+  confidence?: "low" | "medium" | "high";
   ruleScore: number;
   calibratedScore: number;
   confidenceBand: "low_evidence" | "directional" | "supported" | "strong";
@@ -253,6 +255,7 @@ export interface CalibratedScoreFeatures {
   imageSimilarityScore: number | null;
   regulatoryStatus: RegulatoryCheck["status"] | null;
   bpomNieMatch: boolean | null;
+  expectedIdentifierMissing: boolean;
   packagingFieldMismatchCount: number;
   ocrConfidence: number | null;
   evidenceCompleteness: number;

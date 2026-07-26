@@ -22,7 +22,6 @@ const listing: Listing = {
   sourceConfidence: 0.8,
   rightsStatus: "manual_observation",
   limitations: [],
-  groundTruth: null,
   observedAt: "2026-05-07T00:00:00Z",
   rawSource: null,
   sourceType: "manual",
@@ -40,7 +39,7 @@ const score: Score = {
   calibratedScore: 88,
   confidenceBand: "strong",
   riskLevel: "critical",
-  recommendedAction: "enforce",
+  recommendedAction: "priority_review",
   reasons: [{ ruleId: "BPOM_NIE_MISMATCH", ruleName: "BPOM / NIE Mismatch", message: "BPOM missing", points: 30, evidenceRefs: ["e1"] }],
   features: {
     ruleScore: 82,
@@ -229,7 +228,8 @@ describe("LLM evidence judge guardrails", () => {
 
     const assessment = await runLlmJudge({ listing, score, evidence }, false);
 
-    expect(assessment.provider).toBe("anthropic");
+    expect(assessment.provider).toBe("mock");
+    expect(assessment.model).toBe("mock-evidence-judge");
     expect(assessment.error).toBeNull();
     expect(assessment.citedEvidenceIds).toContain("e1");
     expect(assessment.doNotClaimReasons.join(" ")).toContain("not valid JSON");

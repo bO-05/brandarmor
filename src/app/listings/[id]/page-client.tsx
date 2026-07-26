@@ -37,7 +37,7 @@ import type {
   Score,
   VisualMatchEvidence,
 } from "@/domain/types";
-import { buildListingCaseBrief, buildListingWorkflow, buildMediaPreview, getListingNextAction, getListingPrimaryAction, getListingSourceTypeLabel, getPilotLabelPresentation, getRecommendedActionPresentation, getReviewStatusPresentation, type ListingWorkflowStepId, type OperationState } from "@/lib/ui-ux";
+import { buildListingCaseBrief, buildListingWorkflow, buildMediaPreview, getListingNextAction, getListingPrimaryAction, getListingSourceTypeLabel, getRecommendedActionPresentation, getReviewStatusPresentation, type ListingWorkflowStepId, type OperationState } from "@/lib/ui-ux";
 import { buildInvestigationTrail } from "@/lib/investigation-trail";
 import { formatCurrency, getScoreColor } from "@/lib/utils";
 
@@ -425,10 +425,6 @@ function FullEvidenceWorkspace({
             <div>
               <span className="text-muted-foreground"><TermHelp term="source_confidence" /></span>
               <p>{Math.round(listing.sourceConfidence * 100)}%</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground"><TermHelp term="pilot_label" /></span>
-              <p>{getPilotLabelPresentation(listing.groundTruth)}</p>
             </div>
           </div>
           {listing.listingUrl && <a href={listing.listingUrl} target="_blank" className="mt-4 block break-all text-sm text-primary">{listing.listingUrl}</a>}

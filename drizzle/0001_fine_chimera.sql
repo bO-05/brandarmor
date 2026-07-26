@@ -1,0 +1,2 @@
+ALTER TABLE "workspaces" ADD COLUMN "external_organization_id" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_external_organization_id_unique" UNIQUE("external_organization_id");

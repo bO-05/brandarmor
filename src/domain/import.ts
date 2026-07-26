@@ -24,7 +24,6 @@ interface RawRecord {
   sourceConfidence?: number; source_confidence?: number;
   rightsStatus?: string; rights_status?: string;
   limitations?: string[] | string;
-  groundTruth?: string; ground_truth?: string;
   observedAt?: string; observed_at?: string;
   productId?: string; product_id?: string;
 }
@@ -64,7 +63,6 @@ export function parseJsonImport(jsonInput: string): ImportResult {
       sourceConfidence: raw.sourceConfidence ?? raw.source_confidence ?? 0.6,
       rightsStatus: (raw.rightsStatus ?? raw.rights_status ?? "unknown") as any,
       limitations: Array.isArray(raw.limitations) ? raw.limitations : raw.limitations ? [raw.limitations] : [],
-      groundTruth: (raw.groundTruth ?? raw.ground_truth ?? null) as any,
       observedAt: raw.observedAt ?? raw.observed_at ?? new Date().toISOString(),
       rawSource: raw,
       sourceType: "json_import",

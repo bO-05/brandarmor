@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -57,15 +57,30 @@ const setupActions = [
 
 export default function DashboardPage({ initialData }: { initialData: DashboardData }) {
   const ambient = useAmbientStatus();
+  const [brandCount, setBrandCount] = useState(initialData.brands);
+  const [brandsLoaded, setBrandsLoaded] = useState(false);
+  const [brandLoadError, setBrandLoadError] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/brands", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(body?.error ?? "Could not load workspace brands.");
+        return body;
+      })
+      .then((brands) => setBrandCount(Array.isArray(brands) ? brands.length : 0))
+      .catch((fetchError) => setBrandLoadError(fetchError instanceof Error ? fetchError.message : "Could not load workspace brands."))
+      .finally(() => setBrandsLoaded(true));
+  }, []);
   const data = ambient ? {
     ...initialData,
+    brands: brandCount,
     listings: ambient.listingCount,
     unlinkedListings: ambient.unlinkedListingCount,
     unscoredListings: ambient.unscoredListingCount,
     pendingReviews: ambient.pendingReviewCount,
     highRisk: ambient.highRiskScoreCount,
     reviewDecisions: ambient.reviewDecisionCount,
-  } : initialData;
+  } : { ...initialData, brands: brandCount };
   const [error, setError] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
 
@@ -112,8 +127,11 @@ export default function DashboardPage({ initialData }: { initialData: DashboardD
 
   const actions = setupActions;
 
-  if (error) {
-    return <div className="p-6 text-destructive">Error: {error}</div>;
+  if (error || brandLoadError) {
+    return <div role="alert" className="p-6 text-destructive">{error ?? brandLoadError}</div>;
+  }
+  if (!brandsLoaded || !ambient) {
+    return <div className="mx-auto max-w-6xl p-6"><h1 className="text-2xl font-bold">BrandArmor Workspace</h1><p className="mt-3 text-muted-foreground">Loading your authenticated workspace…</p></div>;
   }
 
   return (

@@ -5,6 +5,7 @@ import { enrichRegulatoryCheckWithBpomApi, inferRegulatoryCheck } from "@/lib/re
 import { inferVisualMatch } from "@/lib/visual-compare";
 import { hasEnvValue } from "@/lib/env";
 import { elapsedMs } from "@/lib/provider-safety";
+import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
 import {
   clearGeneratedEvidenceForListing,
@@ -37,6 +38,10 @@ function safeDemoError(): string {
 }
 
 export async function POST() {
+  if (isControlledDemoMode()) {
+    return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
+  }
+
   const startedAt = performance.now();
 
   try {

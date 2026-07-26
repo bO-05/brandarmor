@@ -56,7 +56,7 @@ testZod(schemas.insertProductSchema, [
 
 testZod(schemas.insertListingSchema, [
   { input: { title: "X", price: 100000, sellerName: "s", observedAt: "2026-01-01T00:00:00Z", sourceType: "manual" }, ok: true, desc: "listing valid" },
-  { input: { observedAt: "2026-01-01T00:00:00Z", sourceType: "manual" }, ok: true, desc: "listing req only" },
+  { input: { observedAt: "2026-01-01T00:00:00Z", sourceType: "manual" }, ok: false, desc: "reject listing without title" },
   { input: { sourceType: "manual" }, ok: false, desc: "reject no observedAt" },
   { input: { observedAt: "2026-01-01T00:00:00Z", sourceType: "bad" }, ok: false, desc: "reject bad srcType" },
   { input: { observedAt: "2026-01-01T00:00:00Z", sourceType: "manual", listingUrl: "bad" }, ok: false, desc: "reject bad url" },
@@ -105,7 +105,7 @@ assert(importer.parseJsonImport(JSON.stringify([{ title: "Test", price: "Rp 100.
 const invResult = importer.parseJsonImport(JSON.stringify([{ price: 50000 }]));
 assert(invResult.success === 0, "import: missing fields fail");
 assert(invResult.failed === 1, "import: 1 failed");
-assert(invResult.errors[0].message.includes("must have at least"), "import: min fields error");
+assert(invResult.errors[0].message.includes("Listing title is required"), "import: title required error");
 
 assert(importer.parseJsonImport("bad json").errors[0].message.includes("Invalid JSON"), "import: bad JSON");
 assert(importer.parseJsonImport(JSON.stringify([{ title: "T", listingUrl: "bad" }])).failed === 1, "import: bad URL");
@@ -143,8 +143,10 @@ const authResult = scoring.computeScore({ title: "Batik Premium", price: 245000,
 assert(!authResult.reasons.some(r => r.ruleId === "UNAUTHORIZED_SELLER"), "scoring: auth not flagged");
 assert(authResult.totalScore <= 40, "scoring: auth moderate");
 
-// Missing evidence, title mismatch, suspicious claims
-assert(scoring.computeScore({ title: "Batik" }, demoProduct).reasons.some(r => r.ruleId === "MISSING_EVIDENCE"), "scoring: MISSING_EVIDENCE");
+// Missing evidence lowers confidence instead of adding routing risk.
+const sparseResult = scoring.computeScore({ title: "Batik" }, demoProduct);
+assert(!sparseResult.reasons.some(r => r.ruleId === "MISSING_EVIDENCE"), "scoring: missing evidence is not adverse risk");
+assert(sparseResult.confidence === "low", "scoring: sparse evidence has low confidence");
 assert(scoring.computeScore({ title: "Kemeja" }, demoProduct).reasons.some(r => r.ruleId === "TITLE_MISMATCH"), "scoring: TITLE_MISMATCH");
 assert(scoring.computeScore({ title: "Batik Style ala" }, demoProduct).reasons.some(r => r.ruleId === "SUSPICIOUS_TITLE_CLAIMS"), "scoring: SUSPICIOUS_CLAIMS");
 
@@ -153,7 +155,7 @@ assert(scoring.computeRiskLevel(85) === "critical", "scoring: 85=critical");
 assert(scoring.computeRiskLevel(60) === "high", "scoring: 60=high");
 assert(scoring.computeRiskLevel(35) === "medium", "scoring: 35=medium");
 assert(scoring.computeRiskLevel(10) === "low", "scoring: 10=low");
-assert(scoring.computeRecommendedAction(85) === "enforce", "scoring: 85=enforce");
+assert(scoring.computeRecommendedAction(85) === "priority_review", "scoring: 85=priority_review");
 assert(scoring.computeRecommendedAction(60) === "review", "scoring: 60=review");
 assert(scoring.computeRecommendedAction(35) === "watch", "scoring: 35=watch");
 assert(scoring.computeRecommendedAction(10) === "ignore", "scoring: 10=ignore");
@@ -164,7 +166,7 @@ assert(maxR.totalScore <= 100, "scoring: ceiled <=100");
 const legitR = scoring.computeScore({ title: "Batik Nusantara Premium Tulis Asli", price: 350000, sellerName: "Batik Nusantara Official" }, demoProduct);
 assert(legitR.totalScore < 20, "scoring: legit <20");
 assert(legitR.riskLevel === "low", "scoring: legit low");
-assert(cfResult.scoringVersion === "1.0.0", "scoring: version 1.0.0");
+assert(cfResult.scoringVersion === scoring.SCORING_VERSION, "scoring: current version");
 
 process.stdout.write("\n== Phase 4: Review Transitions ==\n\n");
 
@@ -197,7 +199,7 @@ assert(r1.success, "review: trip-a");
 assert(review.transition(r1.newStatus, "pending").success, "review: trip-b");
 
 // getAllowedTransitions
-assert(review.getAllowedTransitions("pending").length === 4, "review: 4 from pending");
+assert(review.getAllowedTransitions("pending").length === 7, "review: 7 from pending");
 assert(review.getAllowedTransitions("confirmed_counterfeit").length === 0, "review: 0 from terminal");
 
 process.stdout.write("\n== Phase 5: Evaluation Metrics ==\n\n");

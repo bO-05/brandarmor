@@ -161,11 +161,11 @@ describe("getReviewStatusPresentation", () => {
 });
 
 describe("getRecommendedActionPresentation", () => {
-  it("does not expose the raw enforce action as UI copy", () => {
-    const presentation = getRecommendedActionPresentation("enforce");
+  it("presents priority review as a human-routing action", () => {
+    const presentation = getRecommendedActionPresentation("priority_review");
 
-    expect(presentation.label).toBe("Escalate for approval");
-    expect(presentation.helpText).toContain("human approval");
+    expect(presentation.label).toBe("Priority review");
+    expect(presentation.helpText).toContain("human review");
     expect(presentation.label).not.toContain("enforce");
   });
 });
@@ -199,7 +199,7 @@ describe("buildListingCaseBrief", () => {
       score: score({
         totalScore: 86,
         riskLevel: "critical",
-        recommendedAction: "enforce",
+        recommendedAction: "priority_review",
         confidenceBand: "strong",
         reasons: [
           { ruleId: "BPOM_NIE_MISMATCH", ruleName: "BPOM / NIE Mismatch", message: "Expected NIE not found in OCR.", points: 30, evidenceRefs: ["e-1"] },
@@ -218,7 +218,7 @@ describe("buildListingCaseBrief", () => {
       "Price Anomaly",
       "Visual Package Mismatch",
     ]);
-    expect(brief.recommendedNextStep).toContain("approval");
+    expect(brief.recommendedNextStep).toContain("human review");
   });
 
   it("surfaces missing evidence when the judge returns insufficient evidence", () => {
@@ -248,7 +248,7 @@ describe("selectReviewRecommendation", () => {
   it("routes high scores to likely risk without suggesting confirmed risk", () => {
     expect(typeof uiUx.selectReviewRecommendation).toBe("function");
 
-    const recommendation = uiUx.selectReviewRecommendation(score({ totalScore: 91, recommendedAction: "enforce", riskLevel: "critical" }));
+    const recommendation = uiUx.selectReviewRecommendation(score({ totalScore: 91, recommendedAction: "priority_review", riskLevel: "critical" }));
 
     expect(recommendation.status).toBe("likely_counterfeit");
     expect(recommendation.actionLabel).toBe("Mark likely risk");

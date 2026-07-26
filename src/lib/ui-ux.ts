@@ -448,9 +448,9 @@ export function getRecommendedActionPresentation(action: RecommendedAction): Rec
       label: "Route to review",
       helpText: "Send the evidence bundle to a human reviewer.",
     },
-    enforce: {
-      label: "Escalate for approval",
-      helpText: "High-stakes follow-up still requires explicit human approval.",
+    priority_review: {
+      label: "Priority review",
+      helpText: "Prioritize human review before any high-stakes follow-up.",
     },
   };
   return copy[action];
@@ -548,7 +548,7 @@ export function buildListingCaseBrief(input: ListingCaseBriefInput): ListingCase
   }
 
   const action = getRecommendedActionPresentation(input.score.recommendedAction);
-  const shouldReview = input.score.recommendedAction === "review" || input.score.recommendedAction === "enforce" || input.score.totalScore >= 50;
+  const shouldReview = input.score.recommendedAction === "review" || input.score.recommendedAction === "priority_review" || input.score.totalScore >= 50;
   const shouldWatch = input.score.recommendedAction === "watch" || input.score.totalScore >= 20;
 
   return {
@@ -558,8 +558,8 @@ export function buildListingCaseBrief(input: ListingCaseBriefInput): ListingCase
         ? "Keep this listing visible while evidence improves"
         : "Available evidence does not currently need priority review",
     summary: `Score ${input.score.totalScore} is an advisory routing signal, not a counterfeit conclusion. ${action.helpText}`,
-    recommendedNextStep: input.score.recommendedAction === "enforce"
-      ? "Escalate internally for approval before any high-stakes follow-up."
+    recommendedNextStep: input.score.recommendedAction === "priority_review"
+      ? "Prioritize human review before any high-stakes follow-up."
       : action.helpText,
     topReasons,
     missingEvidence,
@@ -576,7 +576,7 @@ export function selectReviewRecommendation(score: ReviewRecommendationScore | nu
       ? "needs_more_evidence"
       : score.totalScore < 20 || recommendedAction === "ignore"
         ? "rejected_legitimate"
-        : score.totalScore >= 50 || recommendedAction === "review" || recommendedAction === "enforce"
+        : score.totalScore >= 50 || recommendedAction === "review" || recommendedAction === "priority_review"
           ? "likely_counterfeit"
           : "needs_more_evidence";
 

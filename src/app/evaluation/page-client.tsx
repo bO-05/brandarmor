@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, BarChart3, Gauge, PlayCircle, Plus, RefreshCw, ShieldAlert, Upload } from "lucide-react";
 import { DemoWorkflowTrail } from "@/components/DemoWorkflowTrail";
@@ -18,6 +18,9 @@ interface Metrics {
 interface EvaluationData {
   cases: number;
   metrics: Metrics[];
+  evaluationMode?: "synthetic_regression_diagnostics";
+  accuracyClaimsSupported?: boolean;
+  datasetLabel?: string;
 }
 
 function isNumber(value: unknown): value is number {
@@ -102,6 +105,9 @@ function evaluationReducer(state: EvaluationState, action: EvaluationAction): Ev
 
 export default function EvaluationPage() {
   const [state, dispatch] = useReducer(evaluationReducer, initialEvaluationState);
+  const [reviewedCasesJson, setReviewedCasesJson] = useState("");
+  const [importingReviewedCases, setImportingReviewedCases] = useState(false);
+  const [reviewedCasesMessage, setReviewedCasesMessage] = useState<string | null>(null);
   const { data, loading, error, showTechnicalTable, listingCount, reviewDecisionCount } = state;
 
   async function load(compute: boolean = true) {
@@ -136,12 +142,36 @@ export default function EvaluationPage() {
 
   useEffect(() => { load(); }, []);
 
+  async function importReviewedCases() {
+    setImportingReviewedCases(true);
+    setReviewedCasesMessage(null);
+    try {
+      const parsed = JSON.parse(reviewedCasesJson);
+      const response = await fetch("/api/evaluation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Could not import reviewed cases.");
+      setReviewedCasesMessage(`${body.created} independently reviewed case(s) imported into the isolated evaluation dataset.`);
+      setReviewedCasesJson("");
+      await load(true);
+    } catch (importError) {
+      setReviewedCasesMessage(importError instanceof Error ? importError.message : "Could not import reviewed cases.");
+    } finally {
+      setImportingReviewedCases(false);
+    }
+  }
+
   if (loading) return <div className="max-w-5xl mx-auto"><h1 className="text-2xl font-bold mb-6">Evaluation</h1><p>Computing pilot metrics&hellip;</p></div>;
   if (!data) return null;
 
   const summary = selectEvaluationSummary(data);
   const best = summary.best;
   const plainSummary = selectEvaluationPlainLanguageSummary(summary);
+  const accuracyClaimsSupported = data.accuracyClaimsSupported === true;
+  const diagnosticDatasetLabel = data.datasetLabel ?? "Authored fixture diagnostics";
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -151,13 +181,27 @@ export default function EvaluationPage() {
         <div>
           <h1 className="text-2xl font-bold">Evaluation</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Pilot metrics show how routing thresholds affect reviewer precision and workload. They do not prove production accuracy.
+            This page reports regression diagnostics for authored fixtures. It does not estimate production accuracy or validate real-world review routing.
           </p>
         </div>
         <button type="button" onClick={() => load(true)} className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">
-          <RefreshCw className="size-4" /> Recompute
+          <RefreshCw className="size-4" /> Recompute diagnostics
         </button>
       </div>
+
+      {!accuracyClaimsSupported && (
+        <section className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <h2 className="font-semibold">Diagnostics only — no accuracy claim</h2>
+          <p className="mt-1 leading-6">{diagnosticDatasetLabel}. Precision, recall, false-positive rate, and F1 remain internal regression signals until an independently reviewed, provenance-documented holdout set exists.</p>
+        </section>
+      )}
+
+      <details className="mb-5 rounded-lg border border-border bg-card p-4">
+        <summary className="cursor-pointer font-semibold">Import independently reviewed holdout cases</summary>
+        <p className="mt-2 text-sm text-muted-foreground">Admin-only. This dataset is isolated from operational listings, evidence, scoring, judges, and reports. Each entry needs datasetVersion, externalCaseId, listingSnapshot, reviewedLabel, reviewerEvidenceRef, provenance, ambiguity flag, and reviewedAt. See docs/PILOT_ACCEPTANCE.md for the contract.</p>
+        <textarea value={reviewedCasesJson} onChange={(event) => setReviewedCasesJson(event.target.value)} placeholder={'[{"datasetVersion":"v1","externalCaseId":"case-001","listingSnapshot":{},"reviewedLabel":"insufficient_evidence","reviewerEvidenceRef":"review-record-001","provenance":{"rights":"documented"},"ambiguous":true,"reviewedAt":"2026-07-25T00:00:00.000Z"}]'} rows={7} className="mt-3 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs" />
+        <div className="mt-3 flex items-center gap-3"><button type="button" onClick={() => void importReviewedCases()} disabled={importingReviewedCases || !reviewedCasesJson.trim()} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">{importingReviewedCases ? "Importing…" : "Import reviewed cases"}</button>{reviewedCasesMessage ? <p role="status" className="text-sm text-muted-foreground">{reviewedCasesMessage}</p> : null}</div>
+      </details>
 
       {error && (
         <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -220,7 +264,7 @@ export default function EvaluationPage() {
                 </p>
               </div>
               <div className="rounded-md border border-border bg-background p-3">
-                <p className="text-sm font-semibold">Best current cutoff</p>
+                <p className="text-sm font-semibold">Diagnostic cutoff</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {best ? `At score ${best.threshold}, the pilot routes ${percent(best.reviewBurden)} of cases for review.` : "No cutoff is available until metrics are computed."}
                 </p>
@@ -247,14 +291,14 @@ export default function EvaluationPage() {
                   <p className="mt-3 text-sm text-muted-foreground">{summary.datasetLabel}. {summary.limitNote}</p>
                   <div className="mt-5 grid gap-3">
                     <div>
-                      <div className="mb-1 flex justify-between text-sm"><span>Precision</span><b>{summary.metricDisplayMode === "guarded" ? `${percent(best.precision)} pilot` : percent(best.precision)}</b></div>
-                      <Bar value={best.precision} />
-                      <p className="mt-1 text-xs text-muted-foreground">Of cases routed to review, how many matched suspicious/unsafe labels in the pilot set.</p>
+                      <div className="mb-1 flex justify-between text-sm"><span>Precision</span><b>{accuracyClaimsSupported ? percent(best.precision) : "withheld"}</b></div>
+                      <Bar value={accuracyClaimsSupported ? best.precision : 0} />
+                      <p className="mt-1 text-xs text-muted-foreground">{accuracyClaimsSupported ? "Of cases routed to review, how many matched suspicious/unsafe labels in the pilot set." : "Withheld until an independently reviewed holdout set supports this metric."}</p>
                     </div>
                     <div>
-                      <div className="mb-1 flex justify-between text-sm"><span>Recall</span><b>{summary.metricDisplayMode === "guarded" ? `${percent(best.recall)} pilot` : percent(best.recall)}</b></div>
-                      <Bar value={best.recall} />
-                      <p className="mt-1 text-xs text-muted-foreground">Of suspicious/unsafe pilot cases, how many the threshold routed to review.</p>
+                      <div className="mb-1 flex justify-between text-sm"><span>Recall</span><b>{accuracyClaimsSupported ? percent(best.recall) : "withheld"}</b></div>
+                      <Bar value={accuracyClaimsSupported ? best.recall : 0} />
+                      <p className="mt-1 text-xs text-muted-foreground">{accuracyClaimsSupported ? "Of suspicious/unsafe pilot cases, how many the threshold routed to review." : "Withheld until an independently reviewed holdout set supports this metric."}</p>
                     </div>
                     <div>
                       <div className="mb-1 flex justify-between text-sm"><span><TermHelp term="review_burden" /></span><b>{percent(best.reviewBurden)}</b></div>
@@ -270,13 +314,13 @@ export default function EvaluationPage() {
               <div className="surface-card rounded-lg p-5">
                 <Gauge className="mb-3 size-5 text-primary" />
                 <p className="text-sm text-muted-foreground"><TermHelp term="f1" /></p>
-                <p className="mt-1 text-2xl font-bold">{summary.f1.toFixed(3)}</p>
+                <p className="mt-1 text-2xl font-bold">{accuracyClaimsSupported ? summary.f1.toFixed(3) : "withheld"}</p>
                 <p className="mt-2 text-xs text-muted-foreground">Single-number balance of precision and recall for the selected threshold.</p>
               </div>
               <div className="surface-card rounded-lg p-5">
                 <ShieldAlert className="mb-3 size-5 text-primary" />
                 <p className="text-sm text-muted-foreground">False positive rate</p>
-                <p className="mt-1 text-2xl font-bold">{best ? percent(best.falsePositiveRate) : "0%"}</p>
+                <p className="mt-1 text-2xl font-bold">{best && accuracyClaimsSupported ? percent(best.falsePositiveRate) : "withheld"}</p>
                 <p className="mt-2 text-xs text-muted-foreground">Lower is safer because fewer legitimate cases are routed as suspicious.</p>
               </div>
               <div className="surface-card rounded-lg p-5 sm:col-span-2">
@@ -291,17 +335,21 @@ export default function EvaluationPage() {
           <section className="surface-card rounded-lg p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="font-semibold">Optional technical threshold table</h2>
-                <p className="mt-1 text-sm text-muted-foreground">TP/FP/TN/FN details for people tuning thresholds after reading the stakeholder summary.</p>
+                <h2 className="font-semibold">Optional diagnostic threshold table</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Fixture-only TP/FP/TN/FN diagnostics for internal regression tuning. Do not use these values as real-world validation.</p>
               </div>
-              <button type="button"
-              onClick={() => dispatch({ type: "toggle_technical_table" })}
-                className="inline-flex items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
-              >
-                {showTechnicalTable ? "Hide technical table" : "Show technical table"}
-              </button>
+              {accuracyClaimsSupported ? (
+                <button type="button"
+                  onClick={() => dispatch({ type: "toggle_technical_table" })}
+                  className="inline-flex items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"
+                >
+                  {showTechnicalTable ? "Hide technical table" : "Show technical table"}
+                </button>
+              ) : (
+                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">Diagnostic cells withheld</p>
+              )}
             </div>
-            {showTechnicalTable && (
+            {accuracyClaimsSupported && showTechnicalTable && (
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

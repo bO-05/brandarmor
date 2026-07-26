@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { judgeRequestSchema } from "@/domain/schemas";
 import { runLlmJudge } from "@/lib/llm-judge";
 import { ensureDemoSeeded } from "@/persistence/auto-seed";
+import { controlledDemoReadOnlyPayload, isControlledDemoMode } from "@/lib/runtime-mode";
 import { createLlmJudgeAssessment, getEvidence, getLatestLlmJudgeAssessment, getLatestOcrArtifact, getLatestRegulatoryCheck, getLatestVisualMatch, getListing, getLlmJudgeAssessments, getProduct, getScore } from "@/persistence/store";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (isControlledDemoMode()) {
+    return NextResponse.json(controlledDemoReadOnlyPayload(), { status: 423 });
+  }
+
   try {
     ensureDemoSeeded();
     const parsed = judgeRequestSchema.safeParse(await request.json());

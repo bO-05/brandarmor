@@ -41,10 +41,10 @@ describe("seeded demo read routes", () => {
     expect(reportResponse.status).toBe(200);
   });
 
-  it("seeds Brands before rendering its initial server data", async () => {
-    const brandsPage = await import("../src/app/brands/page");
-    const element = brandsPage.default() as unknown as { props: { initialBrands: unknown[] } };
+  it("seeds Brands before returning controlled-demo API data", async () => {
+    const brandsRoute = await import("../src/app/api/brands/route");
+    const response = await brandsRoute.GET(new Request("http://localhost/api/brands") as never);
 
-    expect(element.props.initialBrands.length).toBeGreaterThan(0);
+    expect((await response.json()).length).toBeGreaterThan(0);
   });
 });

@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { toast } from "sonner";
 
 export default function NewListingPage() {
-  const router = useRouter();
   const [form, setForm] = useState({ title: "", description: "", price: "", marketplace: "", sellerName: "", listingUrl: "", productId: "", screenshotUrl: "" });
   const [products, setProducts] = useState<Array<{ id: string; name: string; category?: string; bpomNie?: string | null }>>([]);
   const [loading, setLoading] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState("");
 
   function set(field: string, value: string) { setForm(prev => ({ ...prev, [field]: value })); }
 
@@ -30,6 +32,23 @@ export default function NewListingPage() {
     return value.trim() ? null : "Listing title is required.";
   }
 
+  function extractPastedListing() {
+    const lines = pastedText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const priceMatch = pastedText.match(/(?:rp\.?|idr)\s*([\d.,]+)/i);
+    const sellerMatch = pastedText.match(/(?:seller|penjual|shop)\s*[:\-]\s*([^\n]+)/i);
+    const marketplace = /shopee/i.test(pastedText) ? "shopee" : /tokopedia/i.test(pastedText) ? "tokopedia" : /lazada/i.test(pastedText) ? "lazada" : /blibli/i.test(pastedText) ? "blibli" : /bukalapak/i.test(pastedText) ? "bukalapak" : "";
+    setForm((current) => ({
+      ...current,
+      title: current.title || lines[0] || "",
+      description: current.description || pastedText,
+      price: current.price || (priceMatch?.[1] ?? ""),
+      sellerName: current.sellerName || (sellerMatch?.[1]?.trim() ?? ""),
+      marketplace: current.marketplace || marketplace,
+    }));
+    setTitleError(null);
+    setPriceError(null);
+  }
+
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
@@ -41,9 +60,11 @@ export default function NewListingPage() {
     e.preventDefault();
     const nextTitleError = validateTitle(form.title);
     const nextPriceError = validatePrice(form.price);
+    const nextBaselineError = form.productId ? null : "Choose a product baseline before creating a durable investigation.";
     setTitleError(nextTitleError);
     setPriceError(nextPriceError);
-    if (nextTitleError || nextPriceError) return;
+    setBaselineError(nextBaselineError);
+    if (nextTitleError || nextPriceError || nextBaselineError) return;
     setLoading(true);
     try {
       const res = await fetch("/api/listings", {
@@ -63,9 +84,25 @@ export default function NewListingPage() {
           observedAt: new Date().toISOString(),
         }),
       });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.error || "Failed"); }
-      toast.success("Listing created");
-      router.push("/listings");
+      const data = await res.json().catch(() => null) as { error?: string; listing?: { id?: string }; id?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? `Could not create listing (status ${res.status}).`);
+      const listingId = data?.listing?.id ?? data?.id;
+      if (!listingId) throw new Error("Listing was created without an identifier.");
+      let uploadWarning: string | null = null;
+      if (screenshotFile) {
+        try {
+          const upload = new FormData();
+          upload.set("file", screenshotFile);
+          const uploadResponse = await fetch(`/api/listings/${listingId}/assets`, { method: "POST", body: upload });
+          const uploadJson = await uploadResponse.json().catch(() => null) as { error?: string } | null;
+          if (!uploadResponse.ok) uploadWarning = uploadJson?.error ?? "Private screenshot upload could not complete.";
+        } catch {
+          uploadWarning = "Private screenshot upload could not complete. The listing was saved and you can retry from its case workspace.";
+        }
+      }
+      if (uploadWarning) toast.warning(uploadWarning);
+      else toast.success(screenshotFile ? "Listing and private screenshot saved. Investigation is queued." : "Listing created. Investigation is queued.");
+      window.location.assign(`/listings/${listingId}`);
     } catch (e) { toast.error((e as Error).message); } finally { setLoading(false); }
   }
 
@@ -124,15 +161,22 @@ export default function NewListingPage() {
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">New Listing</h1>
       <form noValidate onSubmit={handleSubmit} className="surface-card rounded-lg p-6 space-y-3">
+        <section className="rounded-md border border-border bg-muted/40 p-4">
+          <h2 className="text-sm font-semibold">Start with a marketplace URL, pasted listing text, or screenshot</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Paste what you can see from the listing. BrandArmor extracts a draft that you can review and correct before saving.</p>
+          <textarea value={pastedText} onChange={(event) => setPastedText(event.target.value)} placeholder="Paste listing title, price, seller, and description" rows={4} className="mt-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <button type="button" onClick={extractPastedListing} disabled={!pastedText.trim()} className="mt-2 rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground disabled:opacity-60">Extract draft fields</button>
+        </section>
         <div>
           <label htmlFor="listing-product-baseline" className="mb-1 block text-sm font-medium">Product Baseline</label>
-          <select id="listing-product-baseline" name="productId" value={form.productId} onChange={(e) => set("productId", e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2">
+          <select id="listing-product-baseline" name="productId" required value={form.productId} onChange={(e) => { set("productId", e.target.value); setBaselineError(e.target.value ? null : "Choose a product baseline before creating a durable investigation."); }} className="w-full rounded-md border border-border bg-background px-3 py-2">
             <option value="">No baseline selected</option>
             {products.map((p) => <option key={p.id} value={p.id}>{p.name}{p.bpomNie ? ` / ${p.bpomNie}` : ""}</option>)}
           </select>
           <p className="mt-1 text-xs text-muted-foreground">
-            Optional for intake, but required before OCR, BPOM/NIE, visual comparison, scoring, and judge assessment can run.
+            A product baseline is required for the durable investigation, scoring, and review workflow.
           </p>
+          {baselineError ? <p role="alert" className="mt-1 text-xs text-destructive">{baselineError}</p> : null}
           {products.length === 0 && (
             <div className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
               <p className="font-semibold">No product baselines yet.</p>
@@ -161,7 +205,12 @@ export default function NewListingPage() {
           <h2 className="text-sm font-semibold text-muted-foreground">Source links</h2>
           <div className="grid gap-3 md:grid-cols-2">
             {renderField({ l: "Listing URL", k: "listingUrl", u: true, placeholder: "https://..." })}
-            {renderField({ l: "Screenshot / Image URL", k: "screenshotUrl", u: true, placeholder: "https://.../image.png" })}
+            {renderField({ l: "Existing public image URL (optional)", k: "screenshotUrl", u: true, placeholder: "https://.../image.png" })}
+          </div>
+          <div className="rounded-md border border-border bg-muted/40 p-3">
+            <label htmlFor="listing-private-screenshot" className="block text-sm font-medium">Private screenshot upload</label>
+            <input id="listing-private-screenshot" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setScreenshotFile(event.target.files?.[0] ?? null)} className="mt-2 block w-full text-sm" />
+            <p className="mt-1 text-xs text-muted-foreground">JPEG, PNG, or WebP up to 10 MB. BrandArmor stores this in private case storage; it is not published through a public image URL.</p>
           </div>
         </section>
         <button type="submit" disabled={loading || Boolean(priceError)} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50">

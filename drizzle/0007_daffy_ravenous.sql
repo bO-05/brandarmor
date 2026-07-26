@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "case_assets_workspace_listing_sha_unique" ON "case_assets" USING btree ("workspace_id","listing_id","sha256");
